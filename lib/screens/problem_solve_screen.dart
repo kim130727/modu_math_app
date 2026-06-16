@@ -52,7 +52,10 @@ class _ProblemSolveScreenState extends State<ProblemSolveScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.problem.title)),
+      appBar: AppBar(
+        title: Text(widget.problem.title),
+        toolbarHeight: 72,
+      ),
       body: FutureBuilder<ProblemContent>(
         future: contentFuture,
         builder: (context, snapshot) {
@@ -92,35 +95,43 @@ class _ProblemSolveScreenState extends State<ProblemSolveScreen> {
               );
 
               if (wide) {
-                return Row(
-                  children: [
-                    Expanded(
-                      flex: 5,
+                return SafeArea(
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 1480),
                       child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: svgViewer,
-                      ),
-                    ),
-                    Expanded(
-                      flex: 4,
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(0, 16, 16, 24),
-                        child: ListView(
-                          children: [tutorPanel],
+                        padding: const EdgeInsets.fromLTRB(24, 8, 24, 28),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Expanded(
+                              flex: 5,
+                              child: svgViewer,
+                            ),
+                            const SizedBox(width: 20),
+                            Expanded(
+                              flex: 4,
+                              child: ListView(
+                                children: [tutorPanel],
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
-                  ],
+                  ),
                 );
               }
 
-              return ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-                  SizedBox(height: 330, child: svgViewer),
-                  const SizedBox(height: 14),
-                  tutorPanel,
-                ],
+              return SafeArea(
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                  children: [
+                    SizedBox(height: 340, child: svgViewer),
+                    const SizedBox(height: 16),
+                    tutorPanel,
+                  ],
+                ),
               );
             },
           );

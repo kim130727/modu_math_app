@@ -16,20 +16,30 @@ class ProblemSvgViewer extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFDDE3EA)),
+        border: Border.all(color: const Color(0xFFD7DFEA)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x120F172A),
+            blurRadius: 18,
+            offset: Offset(0, 8),
+          ),
+        ],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(8),
         child: LayoutBuilder(
           builder: (context, constraints) {
-            return InteractiveViewer(
-              minScale: 0.6,
-              maxScale: 4,
-              boundaryMargin: const EdgeInsets.all(80),
-              child: Center(
-                child: AspectRatio(
-                  aspectRatio: svgSize.aspectRatio,
-                  child: SvgPicture.string(displaySvg, fit: BoxFit.contain),
+            return Padding(
+              padding: const EdgeInsets.all(18),
+              child: InteractiveViewer(
+                minScale: 0.6,
+                maxScale: 4,
+                boundaryMargin: const EdgeInsets.all(80),
+                child: Center(
+                  child: AspectRatio(
+                    aspectRatio: svgSize.aspectRatio,
+                    child: SvgPicture.string(displaySvg, fit: BoxFit.contain),
+                  ),
                 ),
               ),
             );

@@ -54,20 +54,27 @@ class _TutorChatPanelState extends State<TutorChatPanel> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFDDE3EA)),
+        border: Border.all(color: const Color(0xFFD7DFEA)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x120F172A),
+            blurRadius: 18,
+            offset: Offset(0, 8),
+          ),
+        ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Row(
               children: [
                 Container(
-                  width: 36,
-                  height: 36,
+                  width: 44,
+                  height: 44,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEFF6FF),
+                    color: const Color(0xFFEAF1FF),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Icon(
@@ -87,9 +94,12 @@ class _TutorChatPanelState extends State<TutorChatPanel> {
             const SizedBox(height: 14),
             Text(
               widget.content.prompt,
-              style: Theme.of(context).textTheme.titleMedium,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    height: 1.45,
+                    color: const Color(0xFF111827),
+                  ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
             if (choices.isEmpty)
               TextField(
                 controller: answerController,
@@ -103,25 +113,53 @@ class _TutorChatPanelState extends State<TutorChatPanel> {
               )
             else
               Wrap(
-                spacing: 10,
-                runSpacing: 10,
+                spacing: 12,
+                runSpacing: 12,
                 children: choices.map((choice) {
                   final selected = selectedChoice == choice;
                   return ChoiceChip(
                     selected: selected,
-                    label: Text(choice, style: const TextStyle(fontSize: 17)),
+                    showCheckmark: false,
+                    avatar: Icon(
+                      selected
+                          ? Icons.radio_button_checked
+                          : Icons.radio_button_unchecked,
+                      size: 19,
+                    ),
+                    label: Text(
+                      choice,
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                      ),
+                    ),
+                    labelPadding: const EdgeInsets.only(right: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 10,
+                    ),
+                    backgroundColor: const Color(0xFFF8FAFC),
+                    selectedColor: const Color(0xFFE7EEFF),
+                    side: BorderSide(
+                      color: selected
+                          ? const Color(0xFF3F5FA8)
+                          : const Color(0xFFC7D0DF),
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                     onSelected: widget.isBusy
                         ? null
                         : (_) => setState(() => selectedChoice = choice),
                   );
                 }).toList(),
               ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
             FilledButton.icon(
               onPressed: widget.isBusy ? null : _submitSelectedAnswer,
               icon: const Icon(Icons.check),
               label: const Padding(
-                padding: EdgeInsets.symmetric(vertical: 12),
+                padding: EdgeInsets.symmetric(vertical: 14),
                 child: Text(
                   '\uC815\uB2F5 \uD655\uC778',
                   style: TextStyle(fontSize: 18),
@@ -152,21 +190,32 @@ class _TutorChatPanelState extends State<TutorChatPanel> {
                 ),
               ),
             ],
-            const Divider(height: 30),
+            const Divider(height: 32, color: Color(0xFFD8DEE8)),
             ConstrainedBox(
               constraints: const BoxConstraints(maxHeight: 390),
-              child: ListView.separated(
-                shrinkWrap: true,
-                itemCount: widget.messages.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 10),
-                itemBuilder: (context, index) {
-                  return _MessageBubble(message: widget.messages[index]);
-                },
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFE5EAF2)),
+                ),
+                child: ListView.separated(
+                  padding: const EdgeInsets.all(12),
+                  shrinkWrap: true,
+                  itemCount: widget.messages.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 10),
+                  itemBuilder: (context, index) {
+                    return _MessageBubble(message: widget.messages[index]);
+                  },
+                ),
               ),
             ),
             if (widget.isBusy) ...[
               const SizedBox(height: 10),
-              const LinearProgressIndicator(minHeight: 3),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: const LinearProgressIndicator(minHeight: 4),
+              ),
             ],
             const SizedBox(height: 14),
             Row(
@@ -264,6 +313,9 @@ class _ResultBanner extends StatelessWidget {
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isCorrect ? const Color(0xFF86EFAC) : const Color(0xFFFDBA74),
+        ),
       ),
       child: Text(
         isCorrect
@@ -288,17 +340,20 @@ class _MessageBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     final isTutor = message.isTutor;
     final bubbleColor =
-        isTutor ? const Color(0xFFF1F5F9) : const Color(0xFFDBEAFE);
+        isTutor ? Colors.white : const Color(0xFFE7EEFF);
     final textColor =
-        isTutor ? const Color(0xFF0F172A) : const Color(0xFF1E3A8A);
+        isTutor ? const Color(0xFF0F172A) : const Color(0xFF273F7A);
     return Align(
       alignment: isTutor ? Alignment.centerLeft : Alignment.centerRight,
       child: Container(
         constraints: const BoxConstraints(maxWidth: 520),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
         decoration: BoxDecoration(
           color: bubbleColor,
           borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isTutor ? const Color(0xFFE2E8F0) : const Color(0xFFC7D7FE),
+          ),
         ),
         child: Text(
           message.text,
