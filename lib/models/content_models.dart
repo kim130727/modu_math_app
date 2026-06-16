@@ -121,12 +121,12 @@ class ProblemContent {
     final answer = answerMap;
     final key = answer['answer_key'];
     if (key is List && key.isNotEmpty) {
-      return key.first.toString();
+      return sanitizeProblemText(key.first.toString());
     }
     if (key is! List && key != null && key.toString().isNotEmpty) {
-      return key.toString();
+      return sanitizeProblemText(key.toString());
     }
-    return answer['value']?.toString() ?? '';
+    return sanitizeProblemText(answer['value']?.toString() ?? '');
   }
 
   List<SolutionStep> get steps {
@@ -144,7 +144,7 @@ class ProblemContent {
     final matches = RegExp(
       r'<text[^>]*id="slot\.(?:c\d+|opt|choice)[^"]*"[^>]*>([^<]+)</text>',
     ).allMatches(svg);
-    return matches
+    final choices = matches
         .map(
           (match) => sanitizeProblemText(
             _decodeXmlText(match.group(1) ?? '').trim(),
@@ -152,7 +152,28 @@ class ProblemContent {
         )
         .where((choice) => choice.isNotEmpty)
         .toList();
+    return _extractInlineChoices(choices) ?? choices;
   }
+}
+
+List<String>? _extractInlineChoices(List<String> choices) {
+  for (final choice in choices) {
+    final match = RegExp(r'[\(（]([^()（）]+)[\)）]').firstMatch(choice);
+    if (match == null) {
+      continue;
+    }
+
+    final inlineChoices = match
+        .group(1)!
+        .split(RegExp(r'[,，/]'))
+        .map((item) => item.replaceAll('.', '').trim())
+        .where((item) => item.isNotEmpty)
+        .toList();
+    if (inlineChoices.length >= 2) {
+      return inlineChoices;
+    }
+  }
+  return null;
 }
 
 class SolutionStep {

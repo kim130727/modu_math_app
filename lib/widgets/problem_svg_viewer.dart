@@ -10,7 +10,8 @@ class ProblemSvgViewer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final displaySvg = sanitizeProblemText(svg);
+    final displaySvg = sanitizeProblemSvg(svg);
+    final svgSize = _SvgSize.parse(svg);
     return DecoratedBox(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -25,15 +26,56 @@ class ProblemSvgViewer extends StatelessWidget {
               minScale: 0.6,
               maxScale: 4,
               boundaryMargin: const EdgeInsets.all(80),
-              child: SizedBox(
-                width: constraints.maxWidth,
-                height: constraints.maxHeight,
-                child: SvgPicture.string(displaySvg, fit: BoxFit.contain),
+              child: Center(
+                child: AspectRatio(
+                  aspectRatio: svgSize.aspectRatio,
+                  child: SvgPicture.string(displaySvg, fit: BoxFit.contain),
+                ),
               ),
             );
           },
         ),
       ),
     );
+  }
+}
+
+class _SvgSize {
+  const _SvgSize(this.width, this.height);
+
+  final double width;
+  final double height;
+
+  double get aspectRatio {
+    if (width <= 0 || height <= 0) {
+      return 4 / 3;
+    }
+    return width / height;
+  }
+
+  static _SvgSize parse(String svg) {
+    final viewBox = RegExp(r'\bviewBox="([^"]+)"').firstMatch(svg)?.group(1);
+    if (viewBox != null) {
+      final parts = viewBox
+          .split(RegExp(r'[\s,]+'))
+          .map(double.tryParse)
+          .whereType<double>()
+          .toList();
+      if (parts.length == 4 && parts[2] > 0 && parts[3] > 0) {
+        return _SvgSize(parts[2], parts[3]);
+      }
+    }
+
+    final width = _readLength(svg, 'width');
+    final height = _readLength(svg, 'height');
+    if (width != null && height != null && width > 0 && height > 0) {
+      return _SvgSize(width, height);
+    }
+    return const _SvgSize(4, 3);
+  }
+
+  static double? _readLength(String svg, String name) {
+    final match = RegExp('\\b$name="([0-9.]+)').firstMatch(svg);
+    return double.tryParse(match?.group(1) ?? '');
   }
 }

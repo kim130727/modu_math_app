@@ -10,8 +10,8 @@ Got dependencies!
 6 packages have newer versions incompatible with dependency constraints.
 Try `flutter pub outdated` for more information.
 Launching lib\main.dart on Web Server in debug mode...
-Waiting for connection from debug service on Web Server...         32.9s
-lib\main.dart is being served at http://127.0.0.1:5137
+Waiting for connection from debug service on Web Server...         28.0s
+lib\main.dart is being served at http://127.0.0.1:8080
 The web-server device requires the Dart Debug Chrome extension for debugging. Consider using the Chrome or Edge devices for an improved development workflow.
 
 Flutter run key commands.
