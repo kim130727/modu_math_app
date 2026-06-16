@@ -1,0 +1,26 @@
+String sanitizeProblemText(String value) {
+  return value
+      .replaceAll('\u2460', '1.')
+      .replaceAll('\u2461', '2.')
+      .replaceAll('\u2462', '3.')
+      .replaceAll('\u2463', '4.')
+      .replaceAll('\u2464', '5.')
+      .replaceAll('\u2465', '6.')
+      .replaceAll('\u2466', '7.')
+      .replaceAll('\u2467', '8.')
+      .replaceAll('\u2468', '9.')
+      .replaceAll('\u3131', '\uAC00')
+      .replaceAll('\u3134', '\uB098')
+      .replaceAll('\u3137', '\uB2E4')
+      .replaceAll('\u3139', '\uB77C')
+      .replaceAll('\u3141', '\uB9C8')
+      .replaceAll('\u3142', '\uBC14')
+      .replaceAll('\u3145', '\uC0AC')
+      .replaceAll('\u3147', '\uC544')
+      .replaceAll('\u3148', '\uC790')
+      .replaceAll('\u314A', '\uCC28')
+      .replaceAll('\u314B', '\uCE74')
+      .replaceAll('\u314C', '\uD0C0')
+      .replaceAll('\u314D', '\uD30C')
+      .replaceAll('\u314E', '\uD558');
+}
