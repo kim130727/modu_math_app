@@ -1,5 +1,6 @@
 import '../models/content_models.dart';
 import '../models/tutor_models.dart';
+import '../utils/tutor_text_sanitizer.dart';
 
 abstract class AiTutorService {
   const AiTutorService();
@@ -34,7 +35,7 @@ abstract class AiTutorService {
   TutorMessage student(String text) {
     return TutorMessage(
       role: TutorMessageRole.student,
-      text: text,
+      text: sanitizeTutorText(text),
       createdAt: DateTime.now(),
     );
   }

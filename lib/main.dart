@@ -23,34 +23,42 @@ class _ModuMathAppState extends State<ModuMathApp> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = ColorScheme.fromSeed(
+      seedColor: const Color(0xFF2563EB),
+      brightness: Brightness.light,
+    );
+
     return MaterialApp(
       title: '모두수학',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF2563EB),
-          brightness: Brightness.light,
-        ),
-        scaffoldBackgroundColor: const Color(0xFFF4F7FB),
+        colorScheme: colorScheme,
+        scaffoldBackgroundColor: colorScheme.surfaceContainerLowest,
         useMaterial3: true,
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFFF4F7FB),
-          foregroundColor: Color(0xFF111827),
+        appBarTheme: AppBarTheme(
+          backgroundColor: colorScheme.surfaceContainerLowest,
+          foregroundColor: colorScheme.onSurface,
           centerTitle: false,
           elevation: 0,
           scrolledUnderElevation: 0,
           titleTextStyle: TextStyle(
-            color: Color(0xFF111827),
+            color: colorScheme.onSurface,
             fontSize: 22,
             fontWeight: FontWeight.w900,
           ),
         ),
+        cardTheme: CardThemeData(
+          color: colorScheme.surface,
+          surfaceTintColor: colorScheme.surfaceTint,
+          elevation: 1,
+          shadowColor: colorScheme.shadow.withValues(alpha: 0.12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+            side: BorderSide(color: colorScheme.outlineVariant),
+          ),
+        ),
         filledButtonTheme: FilledButtonThemeData(
           style: FilledButton.styleFrom(
-            backgroundColor: const Color(0xFF3F5FA8),
-            foregroundColor: Colors.white,
-            disabledBackgroundColor: const Color(0xFFE1E7F0),
-            disabledForegroundColor: const Color(0xFF94A3B8),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
             ),
@@ -59,39 +67,66 @@ class _ModuMathAppState extends State<ModuMathApp> {
         ),
         outlinedButtonTheme: OutlinedButtonThemeData(
           style: OutlinedButton.styleFrom(
-            foregroundColor: const Color(0xFF3F5FA8),
-            side: const BorderSide(color: Color(0xFFB8C3D8)),
+            side: BorderSide(color: colorScheme.outline),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
             ),
             textStyle: const TextStyle(fontWeight: FontWeight.w700),
           ),
         ),
+        chipTheme: ChipThemeData(
+          backgroundColor: colorScheme.surfaceContainerHighest,
+          selectedColor: colorScheme.primaryContainer,
+          side: BorderSide(color: colorScheme.outlineVariant),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          labelStyle: TextStyle(
+            color: colorScheme.onSurface,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: Colors.white,
+          fillColor: colorScheme.surface,
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 16,
             vertical: 14,
           ),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: Color(0xFFC7D0DF)),
+            borderSide: BorderSide(color: colorScheme.outlineVariant),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: Color(0xFFC7D0DF)),
+            borderSide: BorderSide(color: colorScheme.outlineVariant),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: Color(0xFF3F5FA8), width: 1.5),
+            borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
           ),
         ),
-        textTheme: const TextTheme(
-          titleLarge: TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
-          titleMedium: TextStyle(fontSize: 19, fontWeight: FontWeight.w700),
-          bodyLarge: TextStyle(fontSize: 18),
-          bodyMedium: TextStyle(fontSize: 16),
+        dividerTheme: DividerThemeData(
+          color: colorScheme.outlineVariant,
+          space: 32,
+        ),
+        textTheme: TextTheme(
+          titleLarge: TextStyle(
+            color: colorScheme.onSurface,
+            fontSize: 24,
+            fontWeight: FontWeight.w800,
+          ),
+          titleMedium: TextStyle(
+            color: colorScheme.onSurface,
+            fontSize: 19,
+            fontWeight: FontWeight.w700,
+          ),
+          bodyLarge: TextStyle(
+            color: colorScheme.onSurface,
+            fontSize: 18,
+          ),
+          bodyMedium: TextStyle(
+            color: colorScheme.onSurface,
+            fontSize: 16,
+          ),
         ),
       ),
       home: ProblemListScreen(

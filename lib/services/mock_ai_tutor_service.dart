@@ -1,7 +1,8 @@
 import '../models/content_models.dart';
 import '../models/tutor_models.dart';
-import 'ai_tutor_service.dart';
 import '../utils/answer_normalizer.dart';
+import '../utils/tutor_text_sanitizer.dart';
+import 'ai_tutor_service.dart';
 
 class MockAiTutorService extends AiTutorService {
   const MockAiTutorService();
@@ -11,7 +12,7 @@ class MockAiTutorService extends AiTutorService {
     final context = _TutorProblemContext.from(content);
     return [
       _tutor(
-        '좋아요. 이 문제를 함께 읽고 같이 풀어볼게요.\n'
+        '좋아요. 이 문제를 같이 읽고 천천히 풀어볼게요.\n'
         '${context.openingSummary}\n\n'
         '${context.firstPrompt}',
         TutorReplyType.greeting,
@@ -29,7 +30,7 @@ class MockAiTutorService extends AiTutorService {
     final hint = context.hintAt(hintLevel);
     return _tutor(
       '힌트 ${hintLevel + 1}\n$hint\n\n'
-      '이 힌트로 한 번 직접 생각해보고, 풀이를 적어보세요.',
+      '이 힌트로 먼저 한 번 생각해보고 답을 말해볼까요?',
       TutorReplyType.hint,
     );
   }
@@ -56,8 +57,8 @@ class MockAiTutorService extends AiTutorService {
 
     if (isSameAnswer(answer, content.correctAnswer)) {
       return _tutor(
-        '맞았어요. 정답과 일치합니다.\n'
-        '마무리로 풀이 흐름은 이렇게 정리할 수 있어요: ${context.compactPlan}',
+        '맞았어요. 정답과 같아요.\n'
+        '마무리로 풀이 흐름을 같이 정리해볼게요. ${context.compactPlan}',
         TutorReplyType.correct,
       );
     }
@@ -65,7 +66,7 @@ class MockAiTutorService extends AiTutorService {
     final matchedStep = context.matchStep(answer);
     if (matchedStep != null) {
       return _tutor(
-        '좋아요. 방금 말한 내용은 풀이 단계의 "${matchedStep.explanation}"와 연결돼요.\n'
+        '좋아요. 방금 말한 내용은 "${matchedStep.explanation}" 단계와 연결돼요.\n'
         '${context.questionAt(stepIndex + 1)}',
         TutorReplyType.question,
       );
@@ -74,8 +75,8 @@ class MockAiTutorService extends AiTutorService {
     final matchedGiven = context.matchGiven(answer);
     if (matchedGiven != null) {
       return _tutor(
-        '맞아요, 그건 문제에서 주어진 조건이에요: $matchedGiven\n'
-        '이 조건을 이용해서 다음에는 무엇을 계산하거나 비교해야 할까요?',
+        '맞아요. 그건 문제에서 주어진 조건이에요. $matchedGiven\n'
+        '그 조건을 이용해서 다음에는 무엇을 계산하거나 비교해야 할까요?',
         TutorReplyType.question,
       );
     }
@@ -96,14 +97,14 @@ class MockAiTutorService extends AiTutorService {
     final context = _TutorProblemContext.from(content);
     if (isSameAnswer(answer, content.correctAnswer)) {
       return _tutor(
-        '맞았어요. 정답과 일치합니다.\n'
+        '맞았어요. 정답과 같아요.\n'
         '풀이 근거: ${context.compactPlan}',
         TutorReplyType.correct,
       );
     }
 
     return _tutor(
-      '아직 정답과는 달라요. 바로 정답을 보기 전에 풀이 계획을 따라 다시 볼게요.\n'
+      '아직 정답과는 달라요. 바로 정답을 보기 전에 풀이 계획을 따라 다시 확인해볼게요.\n'
       '${context.hintAt(0)}',
       TutorReplyType.retry,
     );
@@ -112,7 +113,7 @@ class MockAiTutorService extends AiTutorService {
   TutorMessage _tutor(String text, TutorReplyType type) {
     return TutorMessage(
       role: TutorMessageRole.tutor,
-      text: text,
+      text: sanitizeTutorText(text),
       replyType: type,
       createdAt: DateTime.now(),
     );
@@ -158,7 +159,7 @@ class _TutorProblemContext {
   String get openingSummary {
     final parts = <String>[
       if (question.isNotEmpty) '문제: $question',
-      if (target.isNotEmpty) '목표: $target',
+      if (target.isNotEmpty) '구할 것: $target',
       if (method.isNotEmpty) '풀이 방법: $method',
       if (givens.isNotEmpty) '주어진 것: ${givens.take(3).join(', ')}',
       if (choices.isNotEmpty) '선택지: ${choices.join(', ')}',
@@ -179,12 +180,12 @@ class _TutorProblemContext {
 
   String get compactPlan {
     if (plan.isNotEmpty) {
-      return plan.join(' → ');
+      return plan.join(' -> ');
     }
     if (steps.isNotEmpty) {
-      return steps.map((step) => step.explanation).join(' → ');
+      return steps.map((step) => step.explanation).join(' -> ');
     }
-    return '주어진 조건을 확인하고 목표에 맞게 계산 또는 비교합니다.';
+    return '주어진 조건을 확인하고, 구할 것에 맞게 계산하거나 비교합니다.';
   }
 
   String hintAt(int index) {
@@ -193,29 +194,29 @@ class _TutorProblemContext {
     }
     if (steps.isNotEmpty) {
       final step = steps[index.clamp(0, steps.length - 1)];
-      final value = step.value.isEmpty ? '' : '\n이 단계에서 확인되는 값: ${step.value}';
+      final value = step.value.isEmpty ? '' : '\n이 단계에서 확인하는 값: ${step.value}';
       return '풀이 단계: ${step.explanation}$value';
     }
     if (givens.isNotEmpty) {
-      return '주어진 것부터 다시 볼게요: ${givens.join(', ')}';
+      return '주어진 것을 다시 볼게요. ${givens.join(', ')}';
     }
-    return '문제에서 구해야 하는 것과 이미 주어진 것을 나누어 적어보세요.';
+    return '문제에서 구해야 하는 것과 주어진 것을 나누어 적어보세요.';
   }
 
   String questionAt(int index) {
     if (steps.isEmpty || index >= steps.length) {
       if (checks.isNotEmpty) {
         return '이제 계산이 맞는지 확인해볼 차례예요.\n검산 근거: ${checks.first}\n'
-            '이 결과가 선택지나 답과 어떻게 연결되나요?';
+            '이 결과가 선택지나 답과 어떻게 연결될까요?';
       }
-      return '좋아요. 이제 지금까지의 풀이를 이용해 답을 골라볼까요?';
+      return '좋아요. 이제 지금까지의 풀이로 어떤 답을 고를 수 있을까요?';
     }
 
     final step = steps[index];
-    final value = step.value.isEmpty ? '' : '\n이 단계에서 나오는 값은 무엇인지도 같이 생각해보세요.';
+    final value = step.value.isEmpty ? '' : '\n이 단계에서 나오는 값을 같이 생각해봐요.';
     return '풀이 ${index + 1}단계로 가볼게요.\n'
         '${step.explanation}$value\n'
-        '왜 이 단계가 필요한지 설명해볼까요?';
+        '왜 이 단계가 필요할까요?';
   }
 
   SolutionStep? matchStep(String message) {

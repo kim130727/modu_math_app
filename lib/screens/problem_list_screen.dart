@@ -40,7 +40,6 @@ class _ProblemListScreenState extends State<ProblemListScreen> {
                 icon: const Icon(Icons.arrow_back),
                 onPressed: () => setState(() => selectedUnit = null),
               ),
-        centerTitle: false,
       ),
       body: FutureBuilder<ProblemManifest>(
         future: manifestFuture,
@@ -273,12 +272,11 @@ class _JourneyHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFDDE3EA)),
-      ),
+    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Card(
+      margin: EdgeInsets.zero,
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Row(
@@ -287,13 +285,12 @@ class _JourneyHeader extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(unit, style: Theme.of(context).textTheme.titleLarge),
+                  Text(unit, style: textTheme.titleLarge),
                   const SizedBox(height: 8),
                   Text(
-                    'AI 튜터와 $count개의 문제를 차례대로 풀어갑니다.',
-                    style: const TextStyle(
-                      color: Color(0xFF475569),
-                      fontSize: 16,
+                    'AI 튜터와 $count개의 문제를 차례대로 풀어봅니다.',
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ],
@@ -326,9 +323,10 @@ class _JourneyStepTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final solved = result != null;
     final color = !solved
-        ? const Color(0xFFEFF6FF)
+        ? colorScheme.secondaryContainer
         : result!.isCorrect
             ? const Color(0xFFDCFCE7)
             : const Color(0xFFFFEDD5);
@@ -343,11 +341,10 @@ class _JourneyStepTile extends StatelessWidget {
             ? '완료'
             : '다시 풀기';
 
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(8),
-      clipBehavior: Clip.antiAlias,
+    return Card(
+      margin: EdgeInsets.zero,
       child: InkWell(
+        borderRadius: BorderRadius.circular(8),
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -355,7 +352,7 @@ class _JourneyStepTile extends StatelessWidget {
             children: [
               CircleAvatar(
                 backgroundColor: color,
-                foregroundColor: const Color(0xFF0F172A),
+                foregroundColor: colorScheme.onSurface,
                 child: Text('$stepNumber'),
               ),
               const SizedBox(width: 14),
@@ -373,7 +370,7 @@ class _JourneyStepTile extends StatelessWidget {
                     Text(
                       'AI 튜터와 함께 풀이',
                       style: TextStyle(
-                        color: Colors.grey.shade700,
+                        color: colorScheme.onSurfaceVariant,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -417,11 +414,12 @@ class _UnitCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(8),
-      clipBehavior: Clip.antiAlias,
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Card(
+      margin: EdgeInsets.zero,
       child: InkWell(
+        borderRadius: BorderRadius.circular(8),
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.all(18),
@@ -432,18 +430,28 @@ class _UnitCard extends StatelessWidget {
               const Spacer(),
               Text(
                 '$count문제',
-                style: const TextStyle(
-                  color: Color(0xFF475569),
+                style: TextStyle(
+                  color: colorScheme.onSurfaceVariant,
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
                 ),
               ),
               const SizedBox(height: 10),
-              const Row(
+              Row(
                 children: [
-                  Icon(Icons.forum_outlined, size: 18),
-                  SizedBox(width: 6),
-                  Text('AI 튜터와 시작'),
+                  Icon(
+                    Icons.forum_outlined,
+                    color: colorScheme.primary,
+                    size: 18,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'AI 튜터로 시작',
+                    style: TextStyle(
+                      color: colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ],
               ),
             ],

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_tts/flutter_tts.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 import '../models/content_models.dart';
 import '../models/tutor_models.dart';
+import '../utils/tutor_text_sanitizer.dart';
 
 class TutorChatPanel extends StatefulWidget {
   const TutorChatPanel({
@@ -38,10 +41,35 @@ class TutorChatPanel extends StatefulWidget {
 class _TutorChatPanelState extends State<TutorChatPanel> {
   final TextEditingController chatController = TextEditingController();
   final TextEditingController answerController = TextEditingController();
+  final FlutterTts tts = FlutterTts();
+  final stt.SpeechToText speech = stt.SpeechToText();
   String? selectedChoice;
+  bool voiceEnabled = false;
+  bool speechAvailable = false;
+  bool isListening = false;
+  int lastSpokenMessageCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _configureVoice();
+  }
+
+  @override
+  void didUpdateWidget(covariant TutorChatPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final newestMessage = widget.messages.lastOrNull;
+    if (voiceEnabled &&
+        newestMessage?.isTutor == true &&
+        widget.messages.length > lastSpokenMessageCount) {
+      _speakLatestTutorMessage();
+    }
+  }
 
   @override
   void dispose() {
+    speech.cancel();
+    tts.stop();
     chatController.dispose();
     answerController.dispose();
     super.dispose();
@@ -50,19 +78,10 @@ class _TutorChatPanelState extends State<TutorChatPanel> {
   @override
   Widget build(BuildContext context) {
     final choices = widget.content.choices;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFD7DFEA)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x120F172A),
-            blurRadius: 18,
-            offset: Offset(0, 8),
-          ),
-        ],
-      ),
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Card(
+      margin: EdgeInsets.zero,
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -74,20 +93,34 @@ class _TutorChatPanelState extends State<TutorChatPanel> {
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEAF1FF),
+                    color: colorScheme.primaryContainer,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.school_outlined,
-                    color: Color(0xFF2563EB),
+                    color: colorScheme.onPrimaryContainer,
                   ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    '\u0041\u0049 \uD29C\uD130',
+                    'AI 튜터',
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
+                ),
+                IconButton(
+                  tooltip: voiceEnabled ? '자동 읽기 끄기' : '자동 읽기 켜기',
+                  onPressed: _toggleVoice,
+                  icon: Icon(
+                    voiceEnabled
+                        ? Icons.volume_up_outlined
+                        : Icons.volume_off_outlined,
+                  ),
+                ),
+                IconButton(
+                  tooltip: '마지막 답변 다시 듣기',
+                  onPressed: _speakLatestTutorMessage,
+                  icon: const Icon(Icons.record_voice_over_outlined),
                 ),
               ],
             ),
@@ -96,7 +129,6 @@ class _TutorChatPanelState extends State<TutorChatPanel> {
               widget.content.prompt,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     height: 1.45,
-                    color: const Color(0xFF111827),
                   ),
             ),
             const SizedBox(height: 16),
@@ -106,7 +138,7 @@ class _TutorChatPanelState extends State<TutorChatPanel> {
                 style: const TextStyle(fontSize: 18),
                 textInputAction: TextInputAction.done,
                 decoration: const InputDecoration(
-                  labelText: '\uB2F5 \uC785\uB825',
+                  labelText: '답 입력',
                   border: OutlineInputBorder(),
                 ),
                 onSubmitted: _submitAnswer,
@@ -130,7 +162,8 @@ class _TutorChatPanelState extends State<TutorChatPanel> {
                       choice,
                       style: TextStyle(
                         fontSize: 17,
-                        fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                        fontWeight:
+                            selected ? FontWeight.w800 : FontWeight.w600,
                       ),
                     ),
                     labelPadding: const EdgeInsets.only(right: 10),
@@ -138,12 +171,11 @@ class _TutorChatPanelState extends State<TutorChatPanel> {
                       horizontal: 10,
                       vertical: 10,
                     ),
-                    backgroundColor: const Color(0xFFF8FAFC),
-                    selectedColor: const Color(0xFFE7EEFF),
+                    selectedColor: colorScheme.primaryContainer,
                     side: BorderSide(
                       color: selected
-                          ? const Color(0xFF3F5FA8)
-                          : const Color(0xFFC7D0DF),
+                          ? colorScheme.primary
+                          : colorScheme.outlineVariant,
                     ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -161,7 +193,7 @@ class _TutorChatPanelState extends State<TutorChatPanel> {
               label: const Padding(
                 padding: EdgeInsets.symmetric(vertical: 14),
                 child: Text(
-                  '\uC815\uB2F5 \uD655\uC778',
+                  '정답 확인',
                   style: TextStyle(fontSize: 18),
                 ),
               ),
@@ -182,22 +214,20 @@ class _TutorChatPanelState extends State<TutorChatPanel> {
                 label: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   child: Text(
-                    widget.hasNextProblem
-                        ? '\uB2E4\uC74C \uBB38\uC81C\uB85C'
-                        : '\uB2E8\uC6D0 \uB9C8\uCE58\uAE30',
+                    widget.hasNextProblem ? '다음 문제로' : '단원 마치기',
                     style: const TextStyle(fontSize: 17),
                   ),
                 ),
               ),
             ],
-            const Divider(height: 32, color: Color(0xFFD8DEE8)),
+            const Divider(),
             ConstrainedBox(
               constraints: const BoxConstraints(maxHeight: 390),
               child: DecoratedBox(
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
+                  color: colorScheme.surfaceContainerLowest,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFFE5EAF2)),
+                  border: Border.all(color: colorScheme.outlineVariant),
                 ),
                 child: ListView.separated(
                   padding: const EdgeInsets.all(12),
@@ -224,7 +254,7 @@ class _TutorChatPanelState extends State<TutorChatPanel> {
                   child: OutlinedButton.icon(
                     onPressed: widget.isBusy ? null : widget.onHint,
                     icon: const Icon(Icons.lightbulb_outline),
-                    label: const Text('\uD78C\uD2B8'),
+                    label: const Text('힌트'),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -232,7 +262,7 @@ class _TutorChatPanelState extends State<TutorChatPanel> {
                   child: OutlinedButton.icon(
                     onPressed: widget.isBusy ? null : widget.onNextStep,
                     icon: const Icon(Icons.arrow_forward),
-                    label: const Text('\uB2E4\uC74C \uB2E8\uACC4'),
+                    label: const Text('다음 단계'),
                   ),
                 ),
               ],
@@ -248,16 +278,21 @@ class _TutorChatPanelState extends State<TutorChatPanel> {
                     maxLines: 1,
                     textInputAction: TextInputAction.send,
                     decoration: const InputDecoration(
-                      labelText:
-                          '\uD480\uC774\uB098 \uC9C8\uBB38\uC744 \uC801\uC5B4\uBCF4\uC138\uC694',
+                      labelText: '풀이를 묻거나 질문을 적어보세요',
                       border: OutlineInputBorder(),
                     ),
                     onSubmitted: _send,
                   ),
                 ),
                 const SizedBox(width: 10),
+                IconButton.filledTonal(
+                  tooltip: isListening ? '듣기 중지' : '음성으로 말하기',
+                  onPressed: widget.isBusy ? null : _toggleListening,
+                  icon: Icon(isListening ? Icons.mic : Icons.mic_none),
+                ),
+                const SizedBox(width: 8),
                 IconButton.filled(
-                  tooltip: '\uBCF4\uB0B4\uAE30',
+                  tooltip: '보내기',
                   onPressed:
                       widget.isBusy ? null : () => _send(chatController.text),
                   icon: const Icon(Icons.send),
@@ -289,12 +324,186 @@ class _TutorChatPanelState extends State<TutorChatPanel> {
   }
 
   void _send(String value) {
-    final text = value.trim();
+    final text = sanitizeTutorText(value);
     if (text.isEmpty) {
       return;
     }
     widget.onSend(text);
     chatController.clear();
+  }
+
+  Future<void> _configureVoice() async {
+    tts.setStartHandler(() {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    });
+    tts.setErrorHandler((error) {
+      if (!mounted) {
+        return;
+      }
+      _showVoiceMessage('브라우저에서 음성 재생을 시작하지 못했어요. 다시 듣기 버튼을 한 번 더 눌러 주세요.');
+    });
+
+    await tts.awaitSpeakCompletion(false);
+    await tts.setLanguage('ko-KR');
+    await tts.setSpeechRate(1.8);
+    await tts.setVolume(1);
+    await tts.setPitch(1.25);
+    await _selectKoreanVoice();
+  }
+
+  Future<void> _toggleVoice() async {
+    setState(() => voiceEnabled = !voiceEnabled);
+    if (voiceEnabled) {
+      await _speakLatestTutorMessage();
+    } else {
+      await tts.stop();
+    }
+  }
+
+  Future<void> _speakLatestTutorMessage() async {
+    final latestTutorMessage = widget.messages.where((message) {
+      return message.isTutor && sanitizeTutorText(message.text).isNotEmpty;
+    }).lastOrNull;
+    if (latestTutorMessage == null) {
+      _showVoiceMessage('아직 읽어줄 튜터 답변이 없어요.');
+      return;
+    }
+    final text = _speechText(latestTutorMessage.text);
+    lastSpokenMessageCount = widget.messages.length;
+    try {
+      tts.stop();
+      await tts.speak(text);
+    } catch (_) {
+      _showVoiceMessage('브라우저 음성 합성이 차단됐어요. 화면을 클릭한 뒤 다시 듣기를 눌러 주세요.');
+    }
+  }
+
+  Future<void> _selectKoreanVoice() async {
+    try {
+      final voices = await tts.getVoices;
+      if (voices is! List) {
+        return;
+      }
+      final koreanVoices = voices.whereType<Map>().where((voice) {
+        final locale = voice['locale']?.toString().toLowerCase() ?? '';
+        return locale.startsWith('ko');
+      }).toList();
+
+      final preferredVoice = koreanVoices.firstWhere(
+        (voice) {
+          final name = voice['name']?.toString().toLowerCase() ?? '';
+          final gender = voice['gender']?.toString().toLowerCase() ?? '';
+          return gender == 'female' ||
+              name.contains('female') ||
+              name.contains('woman') ||
+              name.contains('sunhi') ||
+              name.contains('heami') ||
+              name.contains('yuna') ||
+              name.contains('jimin') ||
+              name.contains('ji-min') ||
+              name.contains('미선') ||
+              name.contains('유나') ||
+              name.contains('선희') ||
+              name.contains('해미');
+        },
+        orElse: () => koreanVoices.isEmpty ? const {} : koreanVoices.first,
+      );
+
+      if (preferredVoice.isNotEmpty) {
+        final locale = preferredVoice['locale']?.toString() ?? '';
+        final name = preferredVoice['name']?.toString() ?? '';
+        if (locale.isNotEmpty && name.isNotEmpty) {
+          await tts.setVoice({'name': name, 'locale': locale});
+          return;
+        }
+      }
+
+      for (final voice in koreanVoices) {
+        final locale = voice['locale']?.toString() ?? '';
+        final name = voice['name']?.toString() ?? '';
+        if (name.isNotEmpty) {
+          await tts.setVoice({'name': name, 'locale': locale});
+          return;
+        }
+      }
+    } catch (_) {
+      // Some browsers return an empty voice list until speech synthesis warms up.
+    }
+  }
+
+  void _showVoiceMessage(String message) {
+    if (!mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  String _speechText(String text) {
+    return sanitizeTutorText(text).replaceAll(RegExp(r'\s*\n+\s*'), ' ');
+  }
+
+  Future<void> _toggleListening() async {
+    if (isListening) {
+      await speech.stop();
+      setState(() => isListening = false);
+      final text = chatController.text.trim();
+      if (text.isNotEmpty) {
+        _send(text);
+      }
+      return;
+    }
+
+    if (!speechAvailable) {
+      final available = await speech.initialize(
+        onStatus: (status) {
+          if (!mounted) {
+            return;
+          }
+          setState(() => isListening = status == 'listening');
+        },
+        onError: (_) {
+          if (!mounted) {
+            return;
+          }
+          setState(() => isListening = false);
+        },
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() => speechAvailable = available);
+      if (!available) {
+        return;
+      }
+    }
+
+    await tts.stop();
+    await speech.listen(
+      listenOptions: stt.SpeechListenOptions(
+        localeId: 'ko_KR',
+        partialResults: true,
+        listenFor: const Duration(seconds: 12),
+        pauseFor: const Duration(seconds: 3),
+      ),
+      onResult: (result) {
+        final text = sanitizeTutorText(result.recognizedWords);
+        chatController.text = text;
+        chatController.selection = TextSelection.collapsed(offset: text.length);
+        if (result.finalResult && text.isNotEmpty) {
+          speech.stop();
+          setState(() => isListening = false);
+          _send(text);
+        }
+      },
+    );
+    if (mounted) {
+      setState(() => isListening = true);
+    }
   }
 }
 
@@ -305,22 +514,23 @@ class _ResultBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isCorrect ? const Color(0xFFDCFCE7) : const Color(0xFFFFEDD5);
+    final colorScheme = Theme.of(context).colorScheme;
+    final backgroundColor =
+        isCorrect ? const Color(0xFFDCFCE7) : colorScheme.tertiaryContainer;
     final textColor =
-        isCorrect ? const Color(0xFF166534) : const Color(0xFF9A3412);
+        isCorrect ? const Color(0xFF166534) : colorScheme.onTertiaryContainer;
+
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: color,
+        color: backgroundColor,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: isCorrect ? const Color(0xFF86EFAC) : const Color(0xFFFDBA74),
+          color: isCorrect ? const Color(0xFF86EFAC) : colorScheme.tertiary,
         ),
       ),
       child: Text(
-        isCorrect
-            ? '\uB9DE\uC558\uC5B4\uC694! \uC774\uC81C \uD29C\uD130\uC640 \uD480\uC774\uB97C \uC815\uB9AC\uD574\uBCF4\uC138\uC694.'
-            : '\uB2E4\uC2DC \uD655\uC778\uD574 \uBD10\uC694. \uD29C\uD130\uC640 \uD55C \uB2E8\uACC4 \uB354 \uD480\uC5B4\uBD05\uC2DC\uB2E4.',
+        isCorrect ? '맞았어요! 이제 튜터와 풀이를 정리해보세요.' : '다시 확인해 봐요. 튜터와 한 단계 더 풀어봅시다.',
         style: TextStyle(
           color: textColor,
           fontSize: 16,
@@ -338,11 +548,13 @@ class _MessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final isTutor = message.isTutor;
     final bubbleColor =
-        isTutor ? Colors.white : const Color(0xFFE7EEFF);
+        isTutor ? colorScheme.surface : colorScheme.primaryContainer;
     final textColor =
-        isTutor ? const Color(0xFF0F172A) : const Color(0xFF273F7A);
+        isTutor ? colorScheme.onSurface : colorScheme.onPrimaryContainer;
+
     return Align(
       alignment: isTutor ? Alignment.centerLeft : Alignment.centerRight,
       child: Container(
@@ -352,11 +564,11 @@ class _MessageBubble extends StatelessWidget {
           color: bubbleColor,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: isTutor ? const Color(0xFFE2E8F0) : const Color(0xFFC7D7FE),
+            color: isTutor ? colorScheme.outlineVariant : colorScheme.primary,
           ),
         ),
         child: Text(
-          message.text,
+          sanitizeTutorText(message.text),
           style: TextStyle(
             color: textColor,
             fontSize: 15.5,
@@ -365,5 +577,15 @@ class _MessageBubble extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+extension _LastOrNull<T> on Iterable<T> {
+  T? get lastOrNull {
+    T? value;
+    for (final item in this) {
+      value = item;
+    }
+    return value;
   }
 }

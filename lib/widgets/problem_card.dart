@@ -14,11 +14,10 @@ class ProblemCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(8),
-      clipBehavior: Clip.antiAlias,
+    return Card(
+      margin: EdgeInsets.zero,
       child: InkWell(
+        borderRadius: BorderRadius.circular(8),
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -56,17 +55,10 @@ class _Chip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: const Color(0xFFEFF6FF),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(
-        text,
-        overflow: TextOverflow.ellipsis,
-        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
-      ),
+    return Chip(
+      label: Text(text),
+      visualDensity: VisualDensity.compact,
+      padding: const EdgeInsets.symmetric(horizontal: 4),
     );
   }
 }

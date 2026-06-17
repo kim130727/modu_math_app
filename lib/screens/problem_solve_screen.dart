@@ -229,7 +229,7 @@ class _ProblemSolveScreenState extends State<ProblemSolveScreen> {
         tutorMessages.add(
           TutorMessage(
             role: TutorMessageRole.tutor,
-            text: 'AI 튜터 응답을 가져오지 못했어요. 잠시 후 다시 시도해 주세요.',
+            text: 'AI 튜터 응답을 가져오지 못했어요. 잠시 뒤 다시 시도해 주세요.',
             replyType: TutorReplyType.retry,
             createdAt: DateTime.now(),
           ),

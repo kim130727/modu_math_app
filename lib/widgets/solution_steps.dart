@@ -11,12 +11,8 @@ class SolutionSteps extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(top: 14),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: const Color(0xFFDDE3EA)),
-        ),
+      child: Card(
+        margin: EdgeInsets.zero,
         child: Padding(
           padding: const EdgeInsets.all(18),
           child: Column(

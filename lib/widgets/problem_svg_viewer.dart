@@ -12,19 +12,9 @@ class ProblemSvgViewer extends StatelessWidget {
   Widget build(BuildContext context) {
     final displaySvg = sanitizeProblemSvg(svg);
     final svgSize = _SvgSize.parse(svg);
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFD7DFEA)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x120F172A),
-            blurRadius: 18,
-            offset: Offset(0, 8),
-          ),
-        ],
-      ),
+    return Card(
+      margin: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(8),
         child: LayoutBuilder(

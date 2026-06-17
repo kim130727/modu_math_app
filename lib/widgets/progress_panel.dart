@@ -9,14 +9,11 @@ class ProgressPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final percent = (progress.accuracy * 100).round();
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(
-          bottom: BorderSide(color: Colors.grey.shade200),
-        ),
-      ),
+
+    return Card(
+      margin: EdgeInsets.zero,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -27,16 +24,27 @@ class ProgressPanel extends StatelessWidget {
             const SizedBox(height: 12),
             Row(
               children: [
-                Expanded(child: _Metric(label: '푼 문제', value: '${progress.solvedCount}')),
-                Expanded(child: _Metric(label: '맞힌 문제', value: '${progress.correctCount}')),
+                Expanded(
+                  child:
+                      _Metric(label: '푼 문제', value: '${progress.solvedCount}'),
+                ),
+                Expanded(
+                  child: _Metric(
+                    label: '맞힌 문제',
+                    value: '${progress.correctCount}',
+                  ),
+                ),
                 Expanded(child: _Metric(label: '정답률', value: '$percent%')),
               ],
             ),
             if (progress.wrongResults.isNotEmpty) ...[
               const SizedBox(height: 14),
-              const Text(
+              Text(
                 '틀린 문제',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                    ),
               ),
               const SizedBox(height: 6),
               ...progress.wrongResults.map(
@@ -44,6 +52,7 @@ class ProgressPanel extends StatelessWidget {
                   result.problem.title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: colorScheme.onSurfaceVariant),
                 ),
               ),
             ],
@@ -62,10 +71,15 @@ class _Metric extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 13, color: Colors.black54)),
+        Text(
+          label,
+          style: TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant),
+        ),
         const SizedBox(height: 3),
         Text(
           value,

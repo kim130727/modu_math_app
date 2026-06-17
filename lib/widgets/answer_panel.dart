@@ -35,18 +35,18 @@ class _AnswerPanelState extends State<AnswerPanel> {
   @override
   Widget build(BuildContext context) {
     final choices = widget.content.choices;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFDDE3EA)),
-      ),
+
+    return Card(
+      margin: EdgeInsets.zero,
       child: Padding(
         padding: const EdgeInsets.all(18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(widget.content.prompt, style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              widget.content.prompt,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             const SizedBox(height: 16),
             if (choices.isEmpty)
               TextField(
@@ -74,7 +74,8 @@ class _AnswerPanelState extends State<AnswerPanel> {
             const SizedBox(height: 16),
             FilledButton(
               onPressed: () {
-                final answer = choices.isEmpty ? controller.text : selectedChoice;
+                final answer =
+                    choices.isEmpty ? controller.text : selectedChoice;
                 if (answer == null || answer.trim().isEmpty) {
                   return;
                 }
@@ -121,12 +122,16 @@ class _ResultBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isCorrect ? const Color(0xFFDCFCE7) : const Color(0xFFFEE2E2);
-    final textColor = isCorrect ? const Color(0xFF166534) : const Color(0xFF991B1B);
+    final colorScheme = Theme.of(context).colorScheme;
+    final backgroundColor =
+        isCorrect ? const Color(0xFFDCFCE7) : colorScheme.errorContainer;
+    final textColor =
+        isCorrect ? const Color(0xFF166534) : colorScheme.onErrorContainer;
+
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: color,
+        color: backgroundColor,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
