@@ -12,6 +12,7 @@ dependencies:
   flutter_dotenv: ^6.0.1
   flutter_svg: ^2.0.10+1
   flutter_tts: ^4.2.5
+  google_fonts: ^6.3.2
   http: ^1.6.0
   speech_to_text: ^7.4.0
 
@@ -25,6 +26,7 @@ flutter:
   assets:
     - .env
     - assets/content/problems/
+    - assets/content/problems/grade3/
     - assets/content/problems/grade3/semester2/unit01_multiplication/
     - assets/content/problems/grade3/semester2/unit02_division/
     - assets/content/problems/grade3/semester2/unit03_circle/
