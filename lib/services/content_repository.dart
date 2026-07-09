@@ -39,8 +39,9 @@ class ContentRepository {
   }
 
   Future<List<String>> loadGrade3JsonProblemPrefixes() async {
-    final manifest = await _loadAssetManifest();
-    final prefixes = manifest.keys
+    final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
+    final prefixes = manifest
+        .listAssets()
         .where(
           (path) =>
               path.startsWith('$grade3Path/') &&
@@ -73,11 +74,6 @@ class ContentRepository {
 
   Future<Map<String, dynamic>> _loadJson(String assetPath) async {
     final source = await rootBundle.loadString(assetPath);
-    return jsonDecode(source) as Map<String, dynamic>;
-  }
-
-  Future<Map<String, dynamic>> _loadAssetManifest() async {
-    final source = await rootBundle.loadString('AssetManifest.json');
     return jsonDecode(source) as Map<String, dynamic>;
   }
 

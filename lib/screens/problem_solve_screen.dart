@@ -146,6 +146,9 @@ class _ProblemSolveScreenState extends State<ProblemSolveScreen> {
     setState(() {
       submittedAnswer = answer;
       isCorrect = correct;
+      if (tutorMessages.isEmpty) {
+        tutorMessages.addAll(tutorService.startSession(content));
+      }
       tutorMessages.add(tutorService.student(answer));
     });
     await _addTutorReply(
@@ -162,9 +165,7 @@ class _ProblemSolveScreenState extends State<ProblemSolveScreen> {
       return;
     }
     tutorProblemId = content.summary.id;
-    tutorMessages
-      ..clear()
-      ..addAll(tutorService.startSession(content));
+    tutorMessages.clear();
     hintLevel = 0;
     tutorStepIndex = 0;
   }
@@ -242,9 +243,10 @@ class _ProblemSolveScreenState extends State<ProblemSolveScreen> {
   AiTutorService _createTutorService() {
     final mode = dotenv.env['AI_TUTOR_MODE']?.toLowerCase().trim() ?? 'mock';
     if (mode == 'openai') {
+      final configuredModel = dotenv.env['OPENAI_MODEL']?.trim() ?? '';
       return OpenAiTutorService(
         apiKey: dotenv.env['OPENAI_API_KEY'] ?? '',
-        model: dotenv.env['OPENAI_MODEL'] ?? 'gpt-5.4-mini',
+        model: configuredModel.isEmpty ? 'gpt-5.4-mini' : configuredModel,
       );
     }
     return const MockAiTutorService();
