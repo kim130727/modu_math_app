@@ -5,6 +5,10 @@ import '../utils/tutor_text_sanitizer.dart';
 abstract class AiTutorService {
   const AiTutorService();
 
+  TutorMode get mode;
+
+  String get label;
+
   List<TutorMessage> startSession(ProblemContent content);
 
   Future<TutorMessage> hint({

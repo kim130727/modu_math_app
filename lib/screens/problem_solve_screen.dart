@@ -7,6 +7,7 @@ import '../services/ai_tutor_service.dart';
 import '../services/content_repository.dart';
 import '../services/mock_ai_tutor_service.dart';
 import '../services/openai_tutor_service.dart';
+import '../services/rule_tutor_service.dart';
 import '../utils/answer_normalizer.dart';
 import '../widgets/problem_svg_viewer.dart';
 import '../widgets/tutor_chat_panel.dart';
@@ -33,7 +34,7 @@ class ProblemSolveScreen extends StatefulWidget {
 
 class _ProblemSolveScreenState extends State<ProblemSolveScreen> {
   late final Future<ProblemContent> contentFuture;
-  late final AiTutorService tutorService;
+  late AiTutorService tutorService;
   final List<TutorMessage> tutorMessages = [];
   bool tutorBusy = false;
   String? tutorProblemId;
@@ -41,6 +42,7 @@ class _ProblemSolveScreenState extends State<ProblemSolveScreen> {
   bool? isCorrect;
   int hintLevel = 0;
   int tutorStepIndex = 0;
+  TutorMode tutorMode = TutorMode.rule;
 
   @override
   void initState() {
@@ -82,14 +84,20 @@ class _ProblemSolveScreenState extends State<ProblemSolveScreen> {
               final svgViewer = ProblemSvgViewer(svg: content.svg);
               final tutorPanel = TutorChatPanel(
                 content: content,
+                mode: tutorMode,
+                openAiConfigured: _openAiConfigured,
+                openAiModel: _openAiModel,
                 messages: tutorMessages,
                 isBusy: tutorBusy,
                 submittedAnswer: submittedAnswer,
                 isCorrect: isCorrect,
+                onModeChanged: (mode) => _changeTutorMode(content, mode),
                 onSubmit: (answer) => _submit(content, answer),
                 onSend: (message) => _sendTutorMessage(content, message),
                 onHint: () => _requestHint(content),
                 onNextStep: () => _requestNextStep(content),
+                onRestart: () => _restartTutor(content),
+                onReset: _resetTutor,
                 hasNextProblem: _hasNextProblem,
                 onNextProblem: _openNextProblem,
               );
@@ -169,6 +177,39 @@ class _ProblemSolveScreenState extends State<ProblemSolveScreen> {
     tutorStepIndex = 0;
   }
 
+  void _changeTutorMode(ProblemContent content, TutorMode mode) {
+    setState(() {
+      tutorMode = mode;
+      tutorService = _createTutorService(mode);
+      tutorProblemId = null;
+      submittedAnswer = null;
+      isCorrect = null;
+    });
+    _ensureTutorSession(content);
+    setState(() {});
+  }
+
+  void _restartTutor(ProblemContent content) {
+    setState(() {
+      tutorProblemId = null;
+      submittedAnswer = null;
+      isCorrect = null;
+    });
+    _ensureTutorSession(content);
+    setState(() {});
+  }
+
+  void _resetTutor() {
+    setState(() {
+      tutorMessages.clear();
+      tutorProblemId = null;
+      submittedAnswer = null;
+      isCorrect = null;
+      hintLevel = 0;
+      tutorStepIndex = 0;
+    });
+  }
+
   Future<void> _sendTutorMessage(ProblemContent content, String message) async {
     setState(() {
       tutorMessages.add(tutorService.student(message));
@@ -239,15 +280,38 @@ class _ProblemSolveScreenState extends State<ProblemSolveScreen> {
     }
   }
 
-  AiTutorService _createTutorService() {
-    final mode = dotenv.env['AI_TUTOR_MODE']?.toLowerCase().trim() ?? 'mock';
-    if (mode == 'openai') {
+  AiTutorService _createTutorService([TutorMode? overrideMode]) {
+    final mode = overrideMode ?? _modeFromEnv;
+    tutorMode = mode;
+    if (mode == TutorMode.openai) {
       return OpenAiTutorService(
         apiKey: dotenv.env['OPENAI_API_KEY'] ?? '',
-        model: dotenv.env['OPENAI_MODEL'] ?? 'gpt-5.4-mini',
+        model: _openAiModel,
       );
     }
-    return const MockAiTutorService();
+    if (mode == TutorMode.mock) {
+      return const MockAiTutorService();
+    }
+    return const RuleTutorService();
+  }
+
+  TutorMode get _modeFromEnv {
+    final mode = dotenv.env['AI_TUTOR_MODE']?.toLowerCase().trim() ?? 'rule';
+    return switch (mode) {
+      'openai' => TutorMode.openai,
+      'mock' => TutorMode.mock,
+      _ => TutorMode.rule,
+    };
+  }
+
+  String get _openAiModel {
+    final model = dotenv.env['OPENAI_MODEL']?.trim();
+    return model == null || model.isEmpty ? 'gpt-5.4-nano' : model;
+  }
+
+  bool get _openAiConfigured {
+    final key = dotenv.env['OPENAI_API_KEY']?.trim() ?? '';
+    return key.isNotEmpty && key != 'sk-your-api-key';
   }
 
   bool get _hasNextProblem {

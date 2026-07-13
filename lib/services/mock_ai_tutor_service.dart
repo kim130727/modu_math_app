@@ -8,13 +8,17 @@ class MockAiTutorService extends AiTutorService {
   const MockAiTutorService();
 
   @override
+  TutorMode get mode => TutorMode.mock;
+
+  @override
+  String get label => 'Mock';
+
+  @override
   List<TutorMessage> startSession(ProblemContent content) {
-    final context = _TutorProblemContext.from(content);
     return [
       _tutor(
-        '좋아요. 이 문제를 같이 읽고 천천히 풀어볼게요.\n'
-        '${context.openingSummary}\n\n'
-        '${context.firstPrompt}',
+        '좋아요. 빠른 점검 모드로 같이 볼게요.\n'
+        '문제에서 무엇을 고르라고 했는지 먼저 말해 볼까요?',
         TutorReplyType.greeting,
       ),
     ];
@@ -26,11 +30,10 @@ class MockAiTutorService extends AiTutorService {
     required List<TutorMessage> messages,
     required int hintLevel,
   }) async {
-    final context = _TutorProblemContext.from(content);
-    final hint = context.hintAt(hintLevel);
     return _tutor(
-      '힌트 ${hintLevel + 1}\n$hint\n\n'
-      '이 힌트로 먼저 한 번 생각해보고 답을 말해볼까요?',
+      '힌트예요.\n'
+      '보기 하나만 골라 문제의 말과 맞는지 살펴보세요.\n'
+      '어느 보기부터 볼까요?',
       TutorReplyType.hint,
     );
   }
@@ -41,8 +44,10 @@ class MockAiTutorService extends AiTutorService {
     required List<TutorMessage> messages,
     required int stepIndex,
   }) async {
-    final context = _TutorProblemContext.from(content);
-    return _tutor(context.questionAt(stepIndex), TutorReplyType.question);
+    return _tutor(
+      _questionFor(content, stepIndex),
+      TutorReplyType.question,
+    );
   }
 
   @override
@@ -52,39 +57,18 @@ class MockAiTutorService extends AiTutorService {
     required String message,
     required int stepIndex,
   }) async {
-    final context = _TutorProblemContext.from(content);
-    final answer = message.trim();
-
-    if (isSameAnswer(answer, content.correctAnswer)) {
+    if (isSameAnswer(message, content.correctAnswer)) {
       return _tutor(
-        '맞았어요. 정답과 같아요.\n'
-        '마무리로 풀이 흐름을 같이 정리해볼게요. ${context.compactPlan}',
+        '맞아요. 정답과 같아요.\n'
+        '왜 그렇게 골랐는지 한 문장으로 말해 볼까요?',
         TutorReplyType.correct,
       );
     }
 
-    final matchedStep = context.matchStep(answer);
-    if (matchedStep != null) {
-      return _tutor(
-        '좋아요. 방금 말한 내용은 "${matchedStep.explanation}" 단계와 연결돼요.\n'
-        '${context.questionAt(stepIndex + 1)}',
-        TutorReplyType.question,
-      );
-    }
-
-    final matchedGiven = context.matchGiven(answer);
-    if (matchedGiven != null) {
-      return _tutor(
-        '맞아요. 그건 문제에서 주어진 조건이에요. $matchedGiven\n'
-        '그 조건을 이용해서 다음에는 무엇을 계산하거나 비교해야 할까요?',
-        TutorReplyType.question,
-      );
-    }
-
     return _tutor(
-      '아직 풀이 흐름과는 조금 달라 보여요.\n'
-      '${context.hintAt(stepIndex)}',
-      TutorReplyType.retry,
+      '좋아요. 그 생각을 문제 조건과 다시 맞춰 볼게요.\n'
+      '${_questionFor(content, stepIndex)}',
+      TutorReplyType.question,
     );
   }
 
@@ -94,20 +78,28 @@ class MockAiTutorService extends AiTutorService {
     required List<TutorMessage> messages,
     required String answer,
   }) async {
-    final context = _TutorProblemContext.from(content);
     if (isSameAnswer(answer, content.correctAnswer)) {
       return _tutor(
-        '맞았어요. 정답과 같아요.\n'
-        '풀이 근거: ${context.compactPlan}',
+        '맞아요. 잘 골랐어요.\n'
+        '이제 다음 문제로 넘어가도 좋아요.',
         TutorReplyType.correct,
       );
     }
 
     return _tutor(
-      '아직 정답과는 달라요. 바로 정답을 보기 전에 풀이 계획을 따라 다시 확인해볼게요.\n'
-      '${context.hintAt(0)}',
+      '아직 정답과 달라요.\n'
+      '바로 답을 보기보다 보기 하나를 다시 확인해 볼까요?',
       TutorReplyType.retry,
     );
+  }
+
+  String _questionFor(ProblemContent content, int stepIndex) {
+    final steps = content.steps;
+    if (steps.isNotEmpty) {
+      final step = steps[stepIndex.clamp(0, steps.length - 1)];
+      return '${step.explanation}\n이 단계에서 알 수 있는 값을 말해 보세요.';
+    }
+    return '문제에서 주어진 조건 하나를 찾아 말해 볼까요?';
   }
 
   TutorMessage _tutor(String text, TutorReplyType type) {
@@ -118,231 +110,4 @@ class MockAiTutorService extends AiTutorService {
       createdAt: DateTime.now(),
     );
   }
-}
-
-class _TutorProblemContext {
-  const _TutorProblemContext({
-    required this.question,
-    required this.method,
-    required this.givens,
-    required this.plan,
-    required this.steps,
-    required this.checks,
-    required this.choices,
-    required this.target,
-  });
-
-  final String question;
-  final String method;
-  final List<String> givens;
-  final List<String> plan;
-  final List<SolutionStep> steps;
-  final List<String> checks;
-  final List<String> choices;
-  final String target;
-
-  factory _TutorProblemContext.from(ProblemContent content) {
-    return _TutorProblemContext(
-      question: content.prompt,
-      method: content.solvable['method']?.toString() ??
-          content.semantic['problem_type']?.toString() ??
-          content.summary.type,
-      givens: _readGivens(content),
-      plan: _stringList(content.solvable['plan']),
-      steps: content.steps,
-      checks: _readChecks(content.solvable['checks']),
-      choices: content.choices,
-      target: _readTarget(content),
-    );
-  }
-
-  String get openingSummary {
-    final parts = <String>[
-      if (question.isNotEmpty) '문제: $question',
-      if (target.isNotEmpty) '구할 것: $target',
-      if (method.isNotEmpty) '풀이 방법: $method',
-      if (givens.isNotEmpty) '주어진 것: ${givens.take(3).join(', ')}',
-      if (choices.isNotEmpty) '선택지: ${choices.join(', ')}',
-    ];
-    return parts.join('\n');
-  }
-
-  String get firstPrompt {
-    if (plan.isNotEmpty) {
-      return '먼저 첫 번째 풀이 계획을 따라가 볼게요.\n${plan.first}\n'
-          '여기서 가장 먼저 확인해야 할 값은 무엇일까요?';
-    }
-    if (givens.isNotEmpty) {
-      return '먼저 주어진 조건 중 계산에 필요한 값을 하나 골라볼까요?';
-    }
-    return '먼저 문제에서 무엇을 구해야 하는지 말해볼까요?';
-  }
-
-  String get compactPlan {
-    if (plan.isNotEmpty) {
-      return plan.join(' -> ');
-    }
-    if (steps.isNotEmpty) {
-      return steps.map((step) => step.explanation).join(' -> ');
-    }
-    return '주어진 조건을 확인하고, 구할 것에 맞게 계산하거나 비교합니다.';
-  }
-
-  String hintAt(int index) {
-    if (plan.isNotEmpty && index < plan.length) {
-      return '계획: ${plan[index]}';
-    }
-    if (steps.isNotEmpty) {
-      final step = steps[index.clamp(0, steps.length - 1)];
-      final value = step.value.isEmpty ? '' : '\n이 단계에서 확인하는 값: ${step.value}';
-      return '풀이 단계: ${step.explanation}$value';
-    }
-    if (givens.isNotEmpty) {
-      return '주어진 것을 다시 볼게요. ${givens.join(', ')}';
-    }
-    return '문제에서 구해야 하는 것과 주어진 것을 나누어 적어보세요.';
-  }
-
-  String questionAt(int index) {
-    if (steps.isEmpty || index >= steps.length) {
-      if (checks.isNotEmpty) {
-        return '이제 계산이 맞는지 확인해볼 차례예요.\n검산 근거: ${checks.first}\n'
-            '이 결과가 선택지나 답과 어떻게 연결될까요?';
-      }
-      return '좋아요. 이제 지금까지의 풀이로 어떤 답을 고를 수 있을까요?';
-    }
-
-    final step = steps[index];
-    final value = step.value.isEmpty ? '' : '\n이 단계에서 나오는 값을 같이 생각해봐요.';
-    return '풀이 ${index + 1}단계로 가볼게요.\n'
-        '${step.explanation}$value\n'
-        '왜 이 단계가 필요할까요?';
-  }
-
-  SolutionStep? matchStep(String message) {
-    final normalized = _compact(message);
-    for (final step in steps) {
-      final candidates = [
-        step.explanation,
-        step.value,
-        step.id,
-      ].where((value) => value.isNotEmpty);
-      for (final candidate in candidates) {
-        final compact = _compact(candidate);
-        if (compact.isNotEmpty &&
-            (normalized.contains(compact) || compact.contains(normalized))) {
-          return step;
-        }
-      }
-    }
-    return null;
-  }
-
-  String? matchGiven(String message) {
-    final normalized = _compact(message);
-    for (final given in givens) {
-      final compact = _compact(given);
-      if (compact.isNotEmpty &&
-          (normalized.contains(compact) || compact.contains(normalized))) {
-        return given;
-      }
-    }
-    return null;
-  }
-}
-
-List<String> _readGivens(ProblemContent content) {
-  final givens = <String>[];
-  final rawGivens = content.solvable['given'];
-  if (rawGivens is List) {
-    for (final item in rawGivens.whereType<Map<String, dynamic>>()) {
-      final ref = item['ref']?.toString();
-      final value = _stringify(item['value']);
-      if (value.isNotEmpty) {
-        givens.add(ref == null || ref.isEmpty ? value : '$ref = $value');
-      }
-    }
-  }
-
-  final domain = _mapAt(content.semantic, 'domain');
-  final objects = domain['objects'];
-  if (givens.isEmpty && objects is List) {
-    for (final item in objects.whereType<Map<String, dynamic>>()) {
-      final id = item['id']?.toString();
-      final text = _stringify(item['text']);
-      if (text.isNotEmpty) {
-        givens.add(id == null || id.isEmpty ? text : '$id = $text');
-      }
-    }
-  }
-  return givens;
-}
-
-List<String> _readChecks(Object? value) {
-  if (value is! List) {
-    return const [];
-  }
-  return value
-      .whereType<Map<String, dynamic>>()
-      .map((item) {
-        final expr = item['expr']?.toString() ?? '';
-        final expected = _stringify(item['expected']);
-        final actual = _stringify(item['actual']);
-        if (expected.isEmpty && actual.isEmpty) {
-          return expr;
-        }
-        return '$expr expected=$expected actual=$actual';
-      })
-      .where((item) => item.trim().isNotEmpty)
-      .toList();
-}
-
-String _readTarget(ProblemContent content) {
-  final solvableTarget = _mapAt(content.solvable, 'target');
-  final answerTarget = _mapAt(content.answerMap, 'target');
-  final description = answerTarget['description']?.toString();
-  if (description != null && description.isNotEmpty) {
-    return description;
-  }
-  final type = solvableTarget['type']?.toString();
-  final ref = solvableTarget['ref']?.toString();
-  if (type != null && type.isNotEmpty) {
-    return ref == null || ref.isEmpty ? type : '$ref ($type)';
-  }
-  return content.summary.title;
-}
-
-List<String> _stringList(Object? value) {
-  if (value is! List) {
-    return const [];
-  }
-  return value.map(_stringify).where((item) => item.isNotEmpty).toList();
-}
-
-Map<String, dynamic> _mapAt(Map<String, dynamic> map, String key) {
-  final value = map[key];
-  if (value is Map<String, dynamic>) {
-    return value;
-  }
-  return const {};
-}
-
-String _stringify(Object? value) {
-  if (value == null) {
-    return '';
-  }
-  if (value is List) {
-    return value.map(_stringify).where((item) => item.isNotEmpty).join(', ');
-  }
-  if (value is Map) {
-    return value.entries
-        .map((entry) => '${entry.key}: ${_stringify(entry.value)}')
-        .where((item) => item.trim().isNotEmpty)
-        .join(', ');
-  }
-  return value.toString();
-}
-
-String _compact(String value) {
-  return value.replaceAll(RegExp(r'\s+'), '').toLowerCase();
 }
