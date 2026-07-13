@@ -27,7 +27,4 @@ flutter:
     - .env
     - assets/content/problems/
     - assets/content/problems/grade3/
-    - assets/content/problems/grade3/semester2/unit01_multiplication/
-    - assets/content/problems/grade3/semester2/unit02_division/
-    - assets/content/problems/grade3/semester2/unit03_circle/
     - assets/content/problems/manifest.json

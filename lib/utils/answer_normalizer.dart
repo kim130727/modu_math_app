@@ -50,6 +50,6 @@ String? _leadingChoiceNumber(String value) {
     return circled[first];
   }
 
-  final match = RegExp(r'^[1-9]').firstMatch(value);
+  final match = RegExp(r'^[1-9]$').firstMatch(value);
   return match?.group(0);
 }

@@ -1,0 +1,202 @@
+{
+  "schema": "modu.layout.v1",
+  "problem_id": "S3_초등_3_008568",
+  "title": "6의 자리를 찾기",
+  "canvas": {
+    "width": 920,
+    "height": 470,
+    "coordinate_mode": "logical",
+    "background": "#FFFFFF"
+  },
+  "regions": [
+    {
+      "id": "region.stem",
+      "role": "stem",
+      "flow": "absolute",
+      "slot_ids": [
+        "slot.qtext"
+      ]
+    },
+    {
+      "id": "region.box",
+      "role": "diagram",
+      "flow": "absolute",
+      "slot_ids": [
+        "slot.box.frame",
+        "slot.box.line5",
+        "slot.box.line1",
+        "slot.box.line2",
+        "slot.box.line3",
+        "slot.box.line4",
+        "slot.box.answer1",
+        "slot.box.answer2",
+        "slot.box.answer3",
+        "slot.box.answer4"
+      ]
+    },
+    {
+      "id": "region.answer",
+      "role": "answer",
+      "flow": "absolute",
+      "slot_ids": []
+    },
+    {
+      "id": "region.explain",
+      "role": "explanation",
+      "flow": "absolute",
+      "slot_ids": []
+    }
+  ],
+  "slots": [
+    {
+      "id": "slot.qtext",
+      "kind": "text",
+      "prompt": "",
+      "content": {
+        "text": "곱셈을 계산할 때 4 × 9 = 36의 6은 어느 자리에 써야 하는지\n 기호를 선택하세요.",
+        "style_role": "question",
+        "x": 45.0,
+        "y": 55.0,
+        "font_size": 30
+      }
+    },
+    {
+      "id": "slot.box.frame",
+      "kind": "rect",
+      "prompt": "",
+      "content": {
+        "x": 285.0,
+        "y": 145.0,
+        "width": 210.0,
+        "height": 160.0
+      }
+    },
+    {
+      "id": "slot.box.line1",
+      "kind": "text",
+      "prompt": "",
+      "content": {
+        "text": "4",
+        "style_role": "body",
+        "x": 395.0,
+        "y": 185.0,
+        "font_size": 30
+      }
+    },
+    {
+      "id": "slot.box.line2",
+      "kind": "text",
+      "prompt": "",
+      "content": {
+        "text": "0",
+        "style_role": "body",
+        "x": 430.0,
+        "y": 185.0,
+        "font_size": 30
+      }
+    },
+    {
+      "id": "slot.box.line3",
+      "kind": "text",
+      "prompt": "",
+      "content": {
+        "text": "×   9",
+        "style_role": "body",
+        "x": 355.0,
+        "y": 230.0,
+        "font_size": 30
+      }
+    },
+    {
+      "id": "slot.box.line4",
+      "kind": "text",
+      "prompt": "",
+      "content": {
+        "text": "0",
+        "style_role": "body",
+        "x": 430.0,
+        "y": 230.0,
+        "font_size": 30
+      }
+    },
+    {
+      "id": "slot.box.line5",
+      "kind": "line",
+      "prompt": "",
+      "content": {
+        "x1": 300.0,
+        "y1": 245.0,
+        "x2": 470.0,
+        "y2": 245.0
+      }
+    },
+    {
+      "id": "slot.box.answer1",
+      "kind": "text",
+      "prompt": "",
+      "content": {
+        "text": "㉠",
+        "style_role": "body",
+        "x": 315.0,
+        "y": 285.0,
+        "font_size": 30
+      }
+    },
+    {
+      "id": "slot.box.answer2",
+      "kind": "text",
+      "prompt": "",
+      "content": {
+        "text": "㉡",
+        "style_role": "body",
+        "x": 350.0,
+        "y": 285.0,
+        "font_size": 30
+      }
+    },
+    {
+      "id": "slot.box.answer3",
+      "kind": "text",
+      "prompt": "",
+      "content": {
+        "text": "㉢",
+        "style_role": "body",
+        "x": 385.0,
+        "y": 285.0,
+        "font_size": 30
+      }
+    },
+    {
+      "id": "slot.box.answer4",
+      "kind": "text",
+      "prompt": "",
+      "content": {
+        "text": "㉣",
+        "style_role": "body",
+        "x": 425.0,
+        "y": 285.0,
+        "font_size": 30
+      }
+    }
+  ],
+  "groups": [],
+  "constraints": [],
+  "diagrams": [],
+  "reading_order": [
+    "region.stem",
+    "slot.qtext",
+    "region.box",
+    "slot.box.frame",
+    "slot.box.line5",
+    "slot.box.line1",
+    "slot.box.line2",
+    "slot.box.line3",
+    "slot.box.line4",
+    "slot.box.answer1",
+    "slot.box.answer2",
+    "slot.box.answer3",
+    "slot.box.answer4",
+    "region.answer",
+    "region.explain"
+  ]
+}

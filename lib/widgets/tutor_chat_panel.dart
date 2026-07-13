@@ -56,7 +56,7 @@ class _TutorChatPanelState extends State<TutorChatPanel> {
   final FlutterTts tts = FlutterTts();
   final stt.SpeechToText speech = stt.SpeechToText();
   String? selectedChoice;
-  bool voiceEnabled = false;
+  bool voiceEnabled = true;
   bool speechAvailable = false;
   bool isListening = false;
   int lastSpokenMessageCount = 0;
@@ -100,6 +100,7 @@ class _TutorChatPanelState extends State<TutorChatPanel> {
         })?.choices ??
         const <String>[];
     final colorScheme = Theme.of(context).colorScheme;
+    final tutorActive = widget.messages.isNotEmpty;
 
     return Card(
       margin: EdgeInsets.zero,
@@ -312,6 +313,16 @@ class _TutorChatPanelState extends State<TutorChatPanel> {
                 ),
               ),
             ],
+            if (!tutorActive) ...[
+              const SizedBox(height: 12),
+              Text(
+                '시작을 누르면 solvable JSON을 바탕으로 단계별 튜터가 열립니다.',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+            ],
             const Divider(),
             ConstrainedBox(
               constraints: const BoxConstraints(maxHeight: 390),
@@ -372,7 +383,8 @@ class _TutorChatPanelState extends State<TutorChatPanel> {
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: widget.isBusy ? null : widget.onHint,
+                    onPressed:
+                        widget.isBusy || !tutorActive ? null : widget.onHint,
                     icon: const Icon(Icons.lightbulb_outline),
                     label: const Text('힌트'),
                   ),
@@ -380,7 +392,9 @@ class _TutorChatPanelState extends State<TutorChatPanel> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: widget.isBusy ? null : widget.onNextStep,
+                    onPressed: widget.isBusy || !tutorActive
+                        ? null
+                        : widget.onNextStep,
                     icon: const Icon(Icons.arrow_forward),
                     label: const Text('다음 단계'),
                   ),
@@ -394,6 +408,7 @@ class _TutorChatPanelState extends State<TutorChatPanel> {
                 Expanded(
                   child: TextField(
                     controller: chatController,
+                    enabled: tutorActive && !widget.isBusy,
                     minLines: 1,
                     maxLines: 1,
                     textInputAction: TextInputAction.send,
@@ -407,14 +422,16 @@ class _TutorChatPanelState extends State<TutorChatPanel> {
                 const SizedBox(width: 10),
                 IconButton.filledTonal(
                   tooltip: isListening ? '듣기 중지' : '음성으로 말하기',
-                  onPressed: widget.isBusy ? null : _toggleListening,
+                  onPressed:
+                      widget.isBusy || !tutorActive ? null : _toggleListening,
                   icon: Icon(isListening ? Icons.mic : Icons.mic_none),
                 ),
                 const SizedBox(width: 8),
                 IconButton.filled(
                   tooltip: '보내기',
-                  onPressed:
-                      widget.isBusy ? null : () => _send(chatController.text),
+                  onPressed: widget.isBusy || !tutorActive
+                      ? null
+                      : () => _send(chatController.text),
                   icon: const Icon(Icons.send),
                 ),
               ],

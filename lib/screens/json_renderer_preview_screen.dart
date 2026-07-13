@@ -1,10 +1,18 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import '../models/content_models.dart';
+import '../models/tutor_models.dart';
+import '../services/ai_tutor_service.dart';
 import '../services/content_repository.dart';
+import '../services/mock_ai_tutor_service.dart';
+import '../services/openai_tutor_service.dart';
+import '../services/rule_tutor_service.dart';
 import '../theme/app_theme.dart';
+import '../utils/answer_normalizer.dart';
 import '../widgets/renderer_json_canvas.dart';
+import '../widgets/tutor_chat_panel.dart';
 import 'problem_list_screen.dart';
 
 class JsonRendererPreviewScreen extends StatefulWidget {
@@ -28,11 +36,21 @@ class _JsonRendererPreviewScreenState extends State<JsonRendererPreviewScreen> {
 
   late final Future<List<String>> prefixesFuture;
   late Future<ProblemJsonBundle> bundleFuture;
+  late AiTutorService tutorService;
+  final List<TutorMessage> tutorMessages = [];
   String selectedFilePrefix = 'S3_초등_3_008540';
+  String? tutorProblemId;
+  String? submittedAnswer;
+  bool? isCorrect;
+  bool tutorBusy = false;
+  int hintLevel = 0;
+  int tutorStepIndex = 0;
+  TutorMode tutorMode = TutorMode.rule;
 
   @override
   void initState() {
     super.initState();
+    tutorService = _createTutorService();
     prefixesFuture = widget.repository.loadGrade3JsonProblemPrefixes();
     bundleFuture = widget.repository.loadProblemJsonBundle(selectedFilePrefix);
   }
@@ -57,6 +75,8 @@ class _JsonRendererPreviewScreenState extends State<JsonRendererPreviewScreen> {
                   }
 
                   final bundle = snapshot.data!;
+                  final content = _problemContent(bundle);
+                  _ensureTutorSession(content);
                   return Column(
                     children: [
                       _TopBar(
@@ -77,7 +97,31 @@ class _JsonRendererPreviewScreenState extends State<JsonRendererPreviewScreen> {
                       Expanded(
                         child: TabBarView(
                           children: [
-                            _RenderTab(bundle: bundle),
+                            _RenderTab(
+                              bundle: bundle,
+                              tutorPanel: TutorChatPanel(
+                                key: ValueKey(bundle.filePrefix),
+                                content: content,
+                                mode: tutorMode,
+                                openAiConfigured: _openAiConfigured,
+                                openAiModel: _openAiModel,
+                                messages: tutorMessages,
+                                isBusy: tutorBusy,
+                                submittedAnswer: submittedAnswer,
+                                isCorrect: isCorrect,
+                                onModeChanged: (mode) =>
+                                    _changeTutorMode(content, mode),
+                                onSubmit: (answer) => _submit(content, answer),
+                                onSend: (message) =>
+                                    _sendTutorMessage(content, message),
+                                onHint: () => _requestHint(content),
+                                onNextStep: () => _requestNextStep(content),
+                                onRestart: () => _restartTutor(content),
+                                onReset: _resetTutor,
+                                hasNextProblem: false,
+                                onNextProblem: () {},
+                              ),
+                            ),
                             _JsonTab(
                                 title: 'semantic.json', data: bundle.semantic),
                             _JsonTab(title: 'layout.json', data: bundle.layout),
@@ -104,7 +148,206 @@ class _JsonRendererPreviewScreenState extends State<JsonRendererPreviewScreen> {
     setState(() {
       selectedFilePrefix = prefix;
       bundleFuture = widget.repository.loadProblemJsonBundle(prefix);
+      tutorProblemId = null;
+      tutorMessages.clear();
+      submittedAnswer = null;
+      isCorrect = null;
+      hintLevel = 0;
+      tutorStepIndex = 0;
     });
+  }
+
+  ProblemContent _problemContent(ProblemJsonBundle bundle) {
+    final metadata = _mapAt(bundle.semantic, 'metadata');
+    final type = bundle.semantic['problem_type']?.toString() ?? 'unknown';
+    return ProblemContent(
+      summary: ProblemSummary(
+        id: bundle.filePrefix,
+        grade: 3,
+        subject: 'math',
+        unit: type,
+        type: type,
+        title: metadata['title']?.toString() ?? bundle.filePrefix,
+        path: ContentRepository.grade3Path,
+        filePrefix: bundle.filePrefix,
+        raw: bundle.semantic,
+      ),
+      svg: '',
+      semantic: bundle.semantic,
+      solvable: bundle.solvable,
+    );
+  }
+
+  void _ensureTutorSession(ProblemContent content) {
+    if (tutorProblemId == content.summary.id) {
+      return;
+    }
+    tutorProblemId = content.summary.id;
+    tutorMessages.clear();
+  }
+
+  void _changeTutorMode(ProblemContent content, TutorMode mode) {
+    setState(() {
+      tutorMode = mode;
+      tutorService = _createTutorService(mode);
+      tutorMessages.clear();
+      tutorMessages.addAll(tutorService.startSession(content));
+      tutorProblemId = content.summary.id;
+      submittedAnswer = null;
+      isCorrect = null;
+      hintLevel = 0;
+      tutorStepIndex = 0;
+    });
+  }
+
+  void _restartTutor(ProblemContent content) {
+    setState(() {
+      tutorMessages.clear();
+      tutorMessages.addAll(tutorService.startSession(content));
+      tutorProblemId = content.summary.id;
+      submittedAnswer = null;
+      isCorrect = null;
+      hintLevel = 0;
+      tutorStepIndex = 0;
+    });
+  }
+
+  void _resetTutor() {
+    setState(() {
+      tutorMessages.clear();
+      tutorProblemId = null;
+      submittedAnswer = null;
+      isCorrect = null;
+      hintLevel = 0;
+      tutorStepIndex = 0;
+    });
+  }
+
+  Future<void> _submit(ProblemContent content, String answer) async {
+    final correct = isSameAnswer(answer, content.correctAnswer);
+    widget.progress.record(content.summary, answer, correct);
+    setState(() {
+      submittedAnswer = answer;
+      isCorrect = correct;
+      if (tutorMessages.isEmpty) {
+        tutorMessages.addAll(tutorService.startSession(content));
+      }
+      tutorMessages.add(tutorService.student(answer));
+    });
+    await _addTutorReply(
+      () => tutorService.reviewAnswer(
+        content: content,
+        messages: tutorMessages,
+        answer: answer,
+      ),
+    );
+  }
+
+  Future<void> _sendTutorMessage(
+    ProblemContent content,
+    String message,
+  ) async {
+    setState(() => tutorMessages.add(tutorService.student(message)));
+    await _addTutorReply(
+      () => tutorService.respondToStudent(
+        content: content,
+        messages: tutorMessages,
+        message: message,
+        stepIndex: tutorStepIndex,
+      ),
+    );
+  }
+
+  Future<void> _requestHint(ProblemContent content) async {
+    final currentHintLevel = hintLevel;
+    setState(() => hintLevel += 1);
+    await _addTutorReply(
+      () => tutorService.hint(
+        content: content,
+        messages: tutorMessages,
+        hintLevel: currentHintLevel,
+      ),
+    );
+  }
+
+  Future<void> _requestNextStep(ProblemContent content) async {
+    final currentStepIndex = tutorStepIndex;
+    setState(() => tutorStepIndex += 1);
+    await _addTutorReply(
+      () => tutorService.nextQuestion(
+        content: content,
+        messages: tutorMessages,
+        stepIndex: currentStepIndex,
+      ),
+    );
+  }
+
+  Future<void> _addTutorReply(
+    Future<TutorMessage> Function() request,
+  ) async {
+    if (tutorBusy) {
+      return;
+    }
+    setState(() => tutorBusy = true);
+    try {
+      final reply = await request();
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        tutorMessages.add(reply);
+        tutorBusy = false;
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        tutorMessages.add(
+          TutorMessage(
+            role: TutorMessageRole.tutor,
+            text: 'AI 튜터의 응답을 받지 못했어요. 잠시 후 다시 시도해 주세요.',
+            replyType: TutorReplyType.retry,
+            createdAt: DateTime.now(),
+          ),
+        );
+        tutorBusy = false;
+      });
+    }
+  }
+
+  AiTutorService _createTutorService([TutorMode? overrideMode]) {
+    final mode = overrideMode ?? _modeFromEnv;
+    tutorMode = mode;
+    if (mode == TutorMode.openai) {
+      return OpenAiTutorService(
+        apiKey: dotenv.env['OPENAI_API_KEY'] ?? '',
+        model: _openAiModel,
+      );
+    }
+    if (mode == TutorMode.mock) {
+      return const MockAiTutorService();
+    }
+    return const RuleTutorService();
+  }
+
+  TutorMode get _modeFromEnv {
+    final mode = dotenv.env['AI_TUTOR_MODE']?.toLowerCase().trim() ?? 'rule';
+    return switch (mode) {
+      'openai' => TutorMode.openai,
+      'mock' => TutorMode.mock,
+      _ => TutorMode.rule,
+    };
+  }
+
+  String get _openAiModel {
+    final model = dotenv.env['OPENAI_MODEL']?.trim();
+    return model == null || model.isEmpty ? 'gpt-5.4-nano' : model;
+  }
+
+  bool get _openAiConfigured {
+    final key = dotenv.env['OPENAI_API_KEY']?.trim() ?? '';
+    return key.isNotEmpty && key != 'sk-your-api-key';
   }
 }
 
@@ -252,27 +495,32 @@ class _StudioTabs extends StatelessWidget {
 }
 
 class _RenderTab extends StatelessWidget {
-  const _RenderTab({required this.bundle});
+  const _RenderTab({
+    required this.bundle,
+    required this.tutorPanel,
+  });
 
   final ProblemJsonBundle bundle;
+  final Widget tutorPanel;
 
   @override
   Widget build(BuildContext context) {
-    return _RenderTabBody(bundle: bundle);
+    return _RenderTabBody(bundle: bundle, tutorPanel: tutorPanel);
   }
 }
 
 class _RenderTabBody extends StatelessWidget {
-  const _RenderTabBody({required this.bundle});
+  const _RenderTabBody({
+    required this.bundle,
+    required this.tutorPanel,
+  });
 
   final ProblemJsonBundle bundle;
+  final Widget tutorPanel;
 
   @override
   Widget build(BuildContext context) {
     final metadata = _mapAt(bundle.semantic, 'metadata');
-    final answer = _mapAt(bundle.semantic, 'answer');
-    final elements = (bundle.renderer['elements'] as List?) ?? const [];
-    final viewBox = _mapAt(bundle.renderer, 'view_box');
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -298,45 +546,7 @@ class _RenderTabBody extends StatelessWidget {
         final details = Padding(
           padding: EdgeInsets.fromLTRB(wide ? 8 : 24, 18, 24, 24),
           child: ListView(
-            children: [
-              _MetricStrip(
-                items: [
-                  const _MetricItem(
-                    icon: Icons.check_circle,
-                    label: '상태',
-                    value: '로드 완료',
-                    color: Color(0xFFE2F5B5),
-                  ),
-                  _MetricItem(
-                    icon: Icons.widgets_outlined,
-                    label: 'Elements',
-                    value: '${elements.length}',
-                    color: KidsPalette.butter,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              _KeyValuePanel(
-                title: 'Semantic',
-                rows: {
-                  '문제 ID': bundle.filePrefix,
-                  '유형': bundle.semantic['problem_type']?.toString() ?? '-',
-                  '제목': metadata['title']?.toString() ?? '-',
-                  '지시문': metadata['instruction']?.toString() ?? '-',
-                  '정답': answer['value']?.toString() ?? '-',
-                },
-              ),
-              const SizedBox(height: 12),
-              _KeyValuePanel(
-                title: 'Renderer',
-                rows: {
-                  '계약 버전':
-                      bundle.renderer['contract_version']?.toString() ?? '-',
-                  'Canvas': '${viewBox['width']} x ${viewBox['height']}',
-                  '배경': viewBox['background']?.toString() ?? '-',
-                },
-              ),
-            ],
+            children: [tutorPanel],
           ),
         );
 
@@ -353,7 +563,7 @@ class _RenderTabBody extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Expanded(flex: 7, child: preview),
-            SizedBox(width: 390, child: details),
+            SizedBox(width: 540, child: details),
           ],
         );
       },
@@ -439,127 +649,6 @@ class _CanvasShell extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(18),
         child: child,
-      ),
-    );
-  }
-}
-
-class _MetricStrip extends StatelessWidget {
-  const _MetricStrip({required this.items});
-
-  final List<_MetricItem> items;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        for (final item in items) ...[
-          Expanded(child: item),
-          if (item != items.last) const SizedBox(width: 10),
-        ],
-      ],
-    );
-  }
-}
-
-class _MetricItem extends StatelessWidget {
-  const _MetricItem({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.color,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, color: KidsPalette.ink, size: 22),
-            const SizedBox(height: 10),
-            Text(
-              label,
-              style: const TextStyle(
-                color: KidsPalette.olive,
-                fontSize: 12,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              value,
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _KeyValuePanel extends StatelessWidget {
-  const _KeyValuePanel({
-    required this.title,
-    required this.rows,
-  });
-
-  final String title;
-  final Map<String, String> rows;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: KidsPalette.paper,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: KidsPalette.line),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title, style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 12),
-            ...rows.entries.map(
-              (entry) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      entry.key,
-                      style: const TextStyle(
-                        color: KidsPalette.olive,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 12,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      entry.value,
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

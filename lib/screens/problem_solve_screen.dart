@@ -154,6 +154,9 @@ class _ProblemSolveScreenState extends State<ProblemSolveScreen> {
     setState(() {
       submittedAnswer = answer;
       isCorrect = correct;
+      if (tutorMessages.isEmpty) {
+        tutorMessages.addAll(tutorService.startSession(content));
+      }
       tutorMessages.add(tutorService.student(answer));
     });
     await _addTutorReply(
@@ -170,9 +173,7 @@ class _ProblemSolveScreenState extends State<ProblemSolveScreen> {
       return;
     }
     tutorProblemId = content.summary.id;
-    tutorMessages
-      ..clear()
-      ..addAll(tutorService.startSession(content));
+    tutorMessages.clear();
     hintLevel = 0;
     tutorStepIndex = 0;
   }
@@ -184,19 +185,24 @@ class _ProblemSolveScreenState extends State<ProblemSolveScreen> {
       tutorProblemId = null;
       submittedAnswer = null;
       isCorrect = null;
+      tutorMessages.clear();
+      tutorMessages.addAll(tutorService.startSession(content));
+      tutorProblemId = content.summary.id;
+      hintLevel = 0;
+      tutorStepIndex = 0;
     });
-    _ensureTutorSession(content);
-    setState(() {});
   }
 
   void _restartTutor(ProblemContent content) {
     setState(() {
-      tutorProblemId = null;
       submittedAnswer = null;
       isCorrect = null;
+      tutorMessages.clear();
+      tutorMessages.addAll(tutorService.startSession(content));
+      tutorProblemId = content.summary.id;
+      hintLevel = 0;
+      tutorStepIndex = 0;
     });
-    _ensureTutorSession(content);
-    setState(() {});
   }
 
   void _resetTutor() {
