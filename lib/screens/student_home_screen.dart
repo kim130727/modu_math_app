@@ -475,23 +475,24 @@ class _LearningPreview extends StatelessWidget {
                     left: compact ? 22 : null,
                     right: compact ? 22 : 34,
                     top: compact ? 26 : 48,
-                    bottom: compact ? 94 : 58,
+                    bottom: compact ? 146 : 58,
                     width: compact ? null : 360,
                     child: _ProblemPreviewCard(problem: problem),
                   ),
                   Positioned(
                     left: compact ? 28 : null,
-                    right: compact ? null : 210,
-                    bottom: compact ? 28 : 42,
+                    right: compact ? null : 430,
+                    bottom: compact ? 24 : 42,
                     child: _ProgressGem(
                       solved: dailySummary.totalAttempted,
                       target: targetDailyCount,
+                      compact: compact,
                     ),
                   ),
                   Positioned(
-                    left: compact ? 142 : null,
-                    right: 24,
-                    bottom: 24,
+                    left: compact ? 122 : null,
+                    right: compact ? 22 : 34,
+                    bottom: compact ? 30 : 28,
                     child: _PreviewCaption(
                       text: problem?.title ?? '오늘 풀 문제를 준비하고 있어요.',
                     ),
@@ -615,27 +616,30 @@ class _ProgressGem extends StatelessWidget {
   const _ProgressGem({
     required this.solved,
     required this.target,
+    required this.compact,
   });
 
   final int solved;
   final int target;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     final ratio = target == 0 ? 0.0 : (solved / target).clamp(0.0, 1.0);
+    final size = compact ? 86.0 : 96.0;
     return Transform.rotate(
       angle: -0.78,
       child: Container(
-        width: 112,
-        height: 112,
+        width: size,
+        height: size,
         decoration: BoxDecoration(
           color: KidsPalette.sage,
-          borderRadius: BorderRadius.circular(28),
+          borderRadius: BorderRadius.circular(compact ? 22 : 26),
           boxShadow: [
             BoxShadow(
-              color: KidsPalette.sage.withValues(alpha: 0.28),
-              blurRadius: 18,
-              offset: const Offset(0, 10),
+              color: KidsPalette.sage.withValues(alpha: 0.24),
+              blurRadius: 22,
+              offset: const Offset(0, 12),
             ),
           ],
         ),
@@ -647,7 +651,7 @@ class _ProgressGem extends StatelessWidget {
             style: const TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.w900,
-              fontSize: 24,
+              fontSize: 22,
             ),
           ),
         ),
@@ -664,24 +668,26 @@ class _PreviewCaption extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 360),
-      child: Text(
-        text,
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-        textAlign: TextAlign.right,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 20,
-          fontWeight: FontWeight.w900,
-          height: 1.18,
-          shadows: [
-            Shadow(
-              color: Color(0x66000000),
-              blurRadius: 8,
-              offset: Offset(0, 2),
+      constraints: const BoxConstraints(maxWidth: 340),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.42),
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          child: Text(
+            text,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.right,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
+              height: 1.22,
             ),
-          ],
+          ),
         ),
       ),
     );
