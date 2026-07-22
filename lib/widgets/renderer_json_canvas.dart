@@ -85,6 +85,8 @@ class RendererJsonPainter extends CustomPainter {
         _paintRect(canvas, attributes);
       case 'text':
         _paintText(canvas, element, attributes);
+      case 'text_box':
+        _paintTextBox(canvas, element, attributes);
     }
   }
 
@@ -219,6 +221,52 @@ class RendererJsonPainter extends CustomPainter {
     );
   }
 
+  void _paintTextBox(
+    Canvas canvas,
+    Map<String, dynamic> element,
+    Map<String, dynamic> attributes,
+  ) {
+    final text = element['text']?.toString() ?? '';
+    final fontSize = _readDouble(attributes['font-size']) ?? 18;
+    final lineHeight = _readDouble(attributes['data-line-height']) ??
+        _readDouble(attributes['line-height']) ??
+        1.35;
+    final fill = _readColor(attributes['fill']) ?? Colors.black;
+    final x = _readDouble(attributes['x']) ?? 0;
+    final y = _readDouble(attributes['y']) ?? 0;
+    final width = _readDouble(attributes['width']) ??
+        _readDouble(attributes['max_width']) ??
+        860;
+    final height = _readDouble(attributes['height']) ?? fontSize * lineHeight;
+    final align = _readTextAlign(attributes['data-text-align']);
+
+    final painter = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: GoogleFonts.notoSansKr(
+          color: fill,
+          fontSize: fontSize,
+          fontWeight: FontWeight.w600,
+          height: lineHeight,
+        ),
+      ),
+      textAlign: align,
+      textDirection: TextDirection.ltr,
+    )..layout(maxWidth: width);
+
+    final verticalAlign = attributes['data-vertical-align']?.toString();
+    final dy = switch (verticalAlign) {
+      'middle' => y + (height - painter.height) / 2,
+      'bottom' => y + height - painter.height,
+      _ => y,
+    };
+
+    canvas.save();
+    canvas.clipRect(Rect.fromLTWH(x, y, width, height));
+    painter.paint(canvas, Offset(x, dy));
+    canvas.restore();
+  }
+
   @override
   bool shouldRepaint(RendererJsonPainter oldDelegate) {
     return oldDelegate.renderer != renderer ||
@@ -256,6 +304,14 @@ List<double>? _readDashArray(Object? value) {
     return null;
   }
   return values;
+}
+
+TextAlign _readTextAlign(Object? value) {
+  return switch (value?.toString()) {
+    'center' => TextAlign.center,
+    'right' => TextAlign.right,
+    _ => TextAlign.left,
+  };
 }
 
 Color? _readColor(Object? value) {
