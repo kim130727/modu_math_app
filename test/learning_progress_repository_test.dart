@@ -2,6 +2,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:modu_math_app/models/content_models.dart';
 import 'package:modu_math_app/models/learning_progress.dart';
 import 'package:modu_math_app/services/local_progress_repository.dart';
+import 'package:modu_math_app/services/persistent_progress_repository.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   group('LocalProgressRepository Tests', () {
@@ -158,6 +160,61 @@ void main() {
 
       expect(summary.solvedCount, equals(1));
       expect(summary.resultFor('P999'), isNull);
+    });
+  });
+
+  group('PersistentProgressRepository', () {
+    const storageKey = 'test_progress_storage';
+    const summary = ProblemSummary(
+      id: 'P010',
+      grade: 3,
+      subject: 'math',
+      unit: '곱셈',
+      type: 'calc',
+      title: '문제 10',
+      path: '',
+      raw: {},
+    );
+
+    setUp(() {
+      SharedPreferences.setMockInitialValues({});
+    });
+
+    test('persists attempts across repository instances', () async {
+      final firstRepository = PersistentProgressRepository(
+        storageKey: storageKey,
+      );
+
+      await firstRepository.recordAttempt(
+        problem: summary,
+        answer: '24',
+        isCorrect: true,
+        hintLevelUsed: 1,
+      );
+
+      final secondRepository = PersistentProgressRepository(
+        storageKey: storageKey,
+      );
+      final attempts = await secondRepository.getAttempts();
+      final daily = await secondRepository.getDailySummary(DateTime.now());
+
+      expect(attempts, hasLength(1));
+      expect(attempts.single.problemId, equals('P010'));
+      expect(attempts.single.hintLevelUsed, equals(1));
+      expect(daily.totalAttempted, equals(1));
+      expect(daily.totalCorrect, equals(1));
+    });
+
+    test('recovers with default progress when stored data is invalid',
+        () async {
+      SharedPreferences.setMockInitialValues({storageKey: '{bad json'});
+
+      final repository = PersistentProgressRepository(storageKey: storageKey);
+      final attempts = await repository.getAttempts();
+      final profile = await repository.getProfile();
+
+      expect(attempts, isEmpty);
+      expect(profile.grade, equals(3));
     });
   });
 }

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../services/content_repository.dart';
 import '../services/learning_progress_repository.dart';
-import '../services/local_progress_repository.dart';
+import '../services/persistent_progress_repository.dart';
 import '../theme/app_theme.dart';
 import 'router.dart';
 
@@ -30,7 +30,7 @@ class _ModuMathAppState extends State<ModuMathApp> {
     super.initState();
     _contentRepository = widget.contentRepository ?? ContentRepository();
     _progressRepository =
-        widget.progressRepository ?? LocalProgressRepository();
+        widget.progressRepository ?? PersistentProgressRepository();
     _router = ModuMathRouter(
       contentRepository: _contentRepository,
       progressRepository: _progressRepository,

@@ -82,19 +82,19 @@ ThemeData buildKidsTheme() {
     bodyLarge: GoogleFonts.notoSansKr(
       color: KidsPalette.ink,
       fontSize: 17,
-      fontWeight: FontWeight.w500,
+      fontWeight: FontWeight.w400,
       height: 1.45,
     ),
     bodyMedium: GoogleFonts.notoSansKr(
       color: KidsPalette.ink,
       fontSize: 15,
-      fontWeight: FontWeight.w500,
+      fontWeight: FontWeight.w400,
       height: 1.45,
     ),
     bodySmall: GoogleFonts.notoSansKr(
       color: KidsPalette.cocoaSoft,
       fontSize: 13,
-      fontWeight: FontWeight.w500,
+      fontWeight: FontWeight.w400,
       height: 1.4,
     ),
     labelLarge: GoogleFonts.notoSansKr(
@@ -129,7 +129,7 @@ ThemeData buildKidsTheme() {
       surfaceTintColor: Colors.transparent,
       elevation: 1,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(16),
         side: const BorderSide(color: KidsPalette.line),
       ),
     ),

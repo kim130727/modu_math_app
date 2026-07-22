@@ -194,7 +194,7 @@ class _TopNavigation extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 24),
       decoration: BoxDecoration(
         color: KidsPalette.paper,
-        borderRadius: BorderRadius.circular(36),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(color: KidsPalette.line),
       ),
       child: Row(
@@ -262,7 +262,7 @@ class _HeroPanel extends StatelessWidget {
       padding: EdgeInsets.all(wide ? 42 : 22),
       decoration: BoxDecoration(
         color: const Color(0xFFF1F1EE),
-        borderRadius: BorderRadius.circular(44),
+        borderRadius: BorderRadius.circular(28),
         border: Border.all(color: KidsPalette.line),
       ),
       child: wide
@@ -570,7 +570,8 @@ class _StudentSilhouette extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: const Color(0xFFBCB8AE).withValues(alpha: 0.42),
-        borderRadius: BorderRadius.circular(32),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: KidsPalette.line),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -594,7 +595,7 @@ class _StudentSilhouette extends StatelessWidget {
             height: 124,
             decoration: BoxDecoration(
               color: const Color(0xFFB8C0D2),
-              borderRadius: BorderRadius.circular(40),
+              borderRadius: BorderRadius.circular(24),
             ),
             alignment: Alignment.center,
             child: Text(
