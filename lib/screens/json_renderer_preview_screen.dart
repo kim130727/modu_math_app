@@ -5,24 +5,27 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../models/content_models.dart';
 import '../models/tutor_models.dart';
 import '../services/ai_tutor_service.dart';
+import '../services/backend_tutor_service.dart';
 import '../services/content_repository.dart';
 import '../services/mock_ai_tutor_service.dart';
-import '../services/openai_tutor_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/answer_normalizer.dart';
 import '../widgets/renderer_json_canvas.dart';
 import '../widgets/tutor_chat_panel.dart';
+import '../services/learning_progress_repository.dart';
 import 'problem_list_screen.dart';
 
 class JsonRendererPreviewScreen extends StatefulWidget {
   const JsonRendererPreviewScreen({
     super.key,
     required this.repository,
-    required this.progress,
+    this.progress,
+    this.progressRepository,
   });
 
   final ContentRepository repository;
-  final SessionProgress progress;
+  final SessionProgress? progress;
+  final LearningProgressRepository? progressRepository;
 
   @override
   State<JsonRendererPreviewScreen> createState() =>
@@ -87,6 +90,7 @@ class _JsonRendererPreviewScreenState extends State<JsonRendererPreviewScreen> {
                             builder: (context) => ProblemListScreen(
                               repository: widget.repository,
                               progress: widget.progress,
+                              progressRepository: widget.progressRepository,
                             ),
                           ),
                         ),
@@ -179,7 +183,16 @@ class _JsonRendererPreviewScreenState extends State<JsonRendererPreviewScreen> {
 
   Future<void> _submit(ProblemContent content, String answer) async {
     final correct = isSameAnswer(answer, content.correctAnswer);
-    widget.progress.record(content.summary, answer, correct);
+    if (widget.progressRepository != null) {
+      await widget.progressRepository!.recordAttempt(
+        problem: content.summary,
+        answer: answer,
+        isCorrect: correct,
+        hintLevelUsed: hintLevel,
+      );
+    } else {
+      widget.progress?.record(content.summary, answer, correct);
+    }
     setState(() {
       submittedAnswer = answer;
       isCorrect = correct;
@@ -272,11 +285,10 @@ class _JsonRendererPreviewScreenState extends State<JsonRendererPreviewScreen> {
 
   AiTutorService _createTutorService() {
     final mode = dotenv.env['AI_TUTOR_MODE']?.toLowerCase().trim() ?? 'mock';
-    if (mode == 'openai') {
-      final configuredModel = dotenv.env['OPENAI_MODEL']?.trim() ?? '';
-      return OpenAiTutorService(
-        apiKey: dotenv.env['OPENAI_API_KEY'] ?? '',
-        model: configuredModel.isEmpty ? 'gpt-5.4-mini' : configuredModel,
+    if (mode == 'backend') {
+      return BackendTutorService(
+        baseUrl: dotenv.env['BACKEND_API_BASE_URL'] ?? '',
+        sessionToken: dotenv.env['BACKEND_SESSION_TOKEN'],
       );
     }
     return const MockAiTutorService();

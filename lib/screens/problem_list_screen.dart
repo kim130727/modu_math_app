@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/content_models.dart';
 import '../services/content_repository.dart';
+import '../services/learning_progress_repository.dart';
 import '../widgets/progress_panel.dart';
 import 'problem_solve_screen.dart';
 
@@ -9,11 +10,15 @@ class ProblemListScreen extends StatefulWidget {
   const ProblemListScreen({
     super.key,
     required this.repository,
-    required this.progress,
+    this.progress,
+    this.progressRepository,
+    this.initialUnit,
   });
 
   final ContentRepository repository;
-  final SessionProgress progress;
+  final SessionProgress? progress;
+  final LearningProgressRepository? progressRepository;
+  final String? initialUnit;
 
   @override
   State<ProblemListScreen> createState() => _ProblemListScreenState();
@@ -26,6 +31,7 @@ class _ProblemListScreenState extends State<ProblemListScreen> {
   @override
   void initState() {
     super.initState();
+    selectedUnit = widget.initialUnit;
     manifestFuture = widget.repository.loadManifest();
   }
 
@@ -60,17 +66,18 @@ class _ProblemListScreenState extends State<ProblemListScreen> {
           }
 
           final problems = snapshot.data?.problems ?? const <ProblemSummary>[];
+          final effectiveProgress = widget.progress ?? SessionProgress();
           return selectedUnit == null
               ? _UnitOverview(
                   problems: problems,
-                  progress: widget.progress,
+                  progress: effectiveProgress,
                   onOpenUnit: (unit) => setState(() => selectedUnit = unit),
                 )
               : _UnitJourney(
                   problems: problems
                       .where((problem) => problem.unit == selectedUnit)
                       .toList(),
-                  progress: widget.progress,
+                  progress: effectiveProgress,
                   onOpenProblem: _openProblem,
                 );
         },
@@ -95,6 +102,7 @@ class _ProblemListScreenState extends State<ProblemListScreen> {
         builder: (context) => ProblemSolveScreen(
           repository: widget.repository,
           progress: widget.progress,
+          progressRepository: widget.progressRepository,
           problem: problem,
           unitProblems: unitProblems,
           problemIndex: problemIndex < 0 ? 0 : problemIndex,

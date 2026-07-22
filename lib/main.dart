@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-import 'models/content_models.dart';
-import 'screens/json_renderer_preview_screen.dart';
+import 'screens/student_home_screen.dart';
 import 'services/content_repository.dart';
+import 'services/local_progress_repository.dart';
 import 'theme/app_theme.dart';
 
 Future<void> main() async {
@@ -20,17 +20,18 @@ class ModuMathApp extends StatefulWidget {
 }
 
 class _ModuMathAppState extends State<ModuMathApp> {
-  final SessionProgress progress = SessionProgress();
+  final ContentRepository contentRepository = ContentRepository();
+  final LocalProgressRepository progressRepository = LocalProgressRepository();
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Modu Math',
+      title: '모두수학 - 초등 맞춤학습',
       debugShowCheckedModeBanner: false,
       theme: buildKidsTheme(),
-      home: JsonRendererPreviewScreen(
-        repository: ContentRepository(),
-        progress: progress,
+      home: StudentHomeScreen(
+        repository: contentRepository,
+        progressRepository: progressRepository,
       ),
     );
   }

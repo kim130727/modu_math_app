@@ -24,7 +24,6 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - .env
     - assets/content/problems/
     - assets/content/problems/grade3/
     - assets/content/problems/manifest.json

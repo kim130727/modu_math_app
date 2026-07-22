@@ -7,3 +7,8 @@ coverage/
 *.iml
 .env
 flutter_preview.*.log
+__pycache__/
+*.py[cod]
+.pytest_cache/
+backend/.venv/
+backend/db.sqlite3
