@@ -39,7 +39,7 @@ class ContentRepository {
   }
 
   Future<ProblemJsonBundle> loadProblemJsonBundle(String filePrefix) async {
-    final basePath = '$grade3Path/$filePrefix';
+    final basePath = await _basePathForPrefix(filePrefix);
     final solvableV12 = await _loadOptionalJson('$basePath.solvable.v1.2.json');
     return ProblemJsonBundle(
       filePrefix: filePrefix,
@@ -85,6 +85,23 @@ class ContentRepository {
       }
     }
     return const {};
+  }
+
+  Future<String> _basePathForPrefix(String filePrefix) async {
+    final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
+    final rendererPath = manifest.listAssets().firstWhere(
+          (path) =>
+              path.startsWith('$grade3Path/') &&
+              path.endsWith('/$filePrefix.renderer.json'),
+          orElse: () => '',
+        );
+    if (rendererPath.isEmpty) {
+      return '$grade3Path/$filePrefix';
+    }
+    return rendererPath.substring(
+      0,
+      rendererPath.length - '.renderer.json'.length,
+    );
   }
 
   Future<List<ProblemSummary>> _loadBundledProblems() async {

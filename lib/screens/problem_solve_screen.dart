@@ -34,7 +34,7 @@ class ProblemSolveScreen extends StatefulWidget {
 }
 
 class _ProblemSolveScreenState extends State<ProblemSolveScreen> {
-  late final Future<ProblemContent> contentFuture;
+  late Future<ProblemContent> contentFuture;
   late AiTutorService tutorService;
   final List<TutorMessage> tutorMessages = [];
   bool tutorBusy = false;
@@ -49,7 +49,11 @@ class _ProblemSolveScreenState extends State<ProblemSolveScreen> {
   void initState() {
     super.initState();
     tutorService = _createTutorService();
-    contentFuture = widget.repository.loadProblem(widget.problem);
+    contentFuture = _loadContent();
+  }
+
+  Future<ProblemContent> _loadContent() {
+    return widget.repository.loadProblem(widget.problem);
   }
 
   @override
@@ -66,14 +70,16 @@ class _ProblemSolveScreenState extends State<ProblemSolveScreen> {
             return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasError) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Text(
-                  '문제를 불러오지 못했습니다.\n${snapshot.error}',
-                  style: Theme.of(context).textTheme.bodyLarge,
-                ),
-              ),
+            return _ProblemLoadError(
+              error: snapshot.error,
+              canOpenNextProblem: _hasNextProblem,
+              onRetry: () {
+                setState(() {
+                  contentFuture = _loadContent();
+                });
+              },
+              onNextProblem: _hasNextProblem ? _openNextProblem : null,
+              onBack: () => Navigator.of(context).pop(),
             );
           }
 
@@ -345,6 +351,94 @@ class _ProblemSolveScreenState extends State<ProblemSolveScreen> {
           problem: widget.unitProblems[nextIndex],
           unitProblems: widget.unitProblems,
           problemIndex: nextIndex,
+        ),
+      ),
+    );
+  }
+}
+
+class _ProblemLoadError extends StatelessWidget {
+  const _ProblemLoadError({
+    required this.error,
+    required this.canOpenNextProblem,
+    required this.onRetry,
+    required this.onNextProblem,
+    required this.onBack,
+  });
+
+  final Object? error;
+  final bool canOpenNextProblem;
+  final VoidCallback onRetry;
+  final VoidCallback? onNextProblem;
+  final VoidCallback onBack;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 520),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Card(
+            child: Padding(
+              padding: const EdgeInsets.all(22),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Icon(
+                    Icons.broken_image_outlined,
+                    size: 42,
+                    color: colorScheme.primary,
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    '이 문제 자료를 불러오지 못했어요',
+                    textAlign: TextAlign.center,
+                    style: textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '다른 문제를 이어서 풀 수 있어요.',
+                    textAlign: TextAlign.center,
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  FilledButton.icon(
+                    onPressed: onRetry,
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('다시 불러오기'),
+                  ),
+                  if (canOpenNextProblem && onNextProblem != null) ...[
+                    const SizedBox(height: 10),
+                    OutlinedButton.icon(
+                      onPressed: onNextProblem,
+                      icon: const Icon(Icons.navigate_next),
+                      label: const Text('다음 문제로'),
+                    ),
+                  ],
+                  const SizedBox(height: 10),
+                  TextButton(
+                    onPressed: onBack,
+                    child: const Text('이전 화면으로'),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '$error',
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );

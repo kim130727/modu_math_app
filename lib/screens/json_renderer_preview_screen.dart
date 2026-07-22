@@ -33,14 +33,11 @@ class JsonRendererPreviewScreen extends StatefulWidget {
 }
 
 class _JsonRendererPreviewScreenState extends State<JsonRendererPreviewScreen> {
-  // ignore: unused_field
-  static const filePrefix = 'S3_초등_3_008676';
-
   late final Future<List<String>> prefixesFuture;
   late Future<ProblemJsonBundle> bundleFuture;
   late AiTutorService tutorService;
   final List<TutorMessage> tutorMessages = [];
-  String selectedFilePrefix = 'S3_초등_3_008540';
+  String selectedFilePrefix = '';
   String? tutorProblemId;
   String? submittedAnswer;
   bool? isCorrect;
@@ -54,7 +51,16 @@ class _JsonRendererPreviewScreenState extends State<JsonRendererPreviewScreen> {
     super.initState();
     tutorService = _createTutorService();
     prefixesFuture = widget.repository.loadGrade3JsonProblemPrefixes();
-    bundleFuture = widget.repository.loadProblemJsonBundle(selectedFilePrefix);
+    bundleFuture = _loadInitialBundle();
+  }
+
+  Future<ProblemJsonBundle> _loadInitialBundle() async {
+    final prefixes = await prefixesFuture;
+    if (prefixes.isEmpty) {
+      throw StateError('렌더링 가능한 3학년 문제 자산이 없습니다.');
+    }
+    selectedFilePrefix = prefixes.first;
+    return widget.repository.loadProblemJsonBundle(selectedFilePrefix);
   }
 
   @override
