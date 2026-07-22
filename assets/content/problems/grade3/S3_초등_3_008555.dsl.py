@@ -29,14 +29,6 @@ def build_problem_template() -> ProblemTemplate:
                 prompt="",
                 text="계산 결과가 500보다 큰 것을 선택해 보세요.",
                 style_role="question",
-<<<<<<< HEAD:examples/problems/TS_01.초등학교_3학년_01.객관식/S3_초등_3_008555.dsl.py
-                x = 70, y = 35, font_size=28,
-            ),
-            RectSlot(id="slot.choice1_box", prompt="", x = 105, y = 70, width=178.0, height=76.0),
-            TextSlot(id="slot.choice1_text", prompt="", text="35 × 13", style_role="choice", x = 140, y = 120, font_size=28),
-            RectSlot(id="slot.choice2_box", prompt="", x = 365, y = 70, width=178.0, height=76.0),
-            TextSlot(id="slot.choice2_text", prompt="", text="28 × 19", style_role="choice", x = 400, y = 120, font_size=28),
-=======
                 x=40.0,
                 y=60.0,
                 font_size=28,
@@ -45,7 +37,6 @@ def build_problem_template() -> ProblemTemplate:
             TextSlot(id="slot.choice1_text", prompt="", text="35 × 13", style_role="choice", x=100.0, y=163.0, font_size=28),
             RectSlot(id="slot.choice2_box", prompt="", x=300.0, y=120.0, width=178.0, height=76.0),
             TextSlot(id="slot.choice2_text", prompt="", text="28 × 19", style_role="choice", x=340.0, y=163.0, font_size=28),
->>>>>>> 71a328bd333ac522efc2b16e3372d00a762fe4a9:examples/problems/TS_01.초등학교_3학년_01.객관식/complete/S3_초등_3_008555.dsl.py
         ),
         diagrams=(),
         groups=(),

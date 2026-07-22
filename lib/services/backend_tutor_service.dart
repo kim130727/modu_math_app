@@ -20,6 +20,12 @@ class BackendTutorService extends AiTutorService {
   final http.Client client;
 
   @override
+  TutorMode get mode => TutorMode.backend;
+
+  @override
+  String get label => 'Backend';
+
+  @override
   List<TutorMessage> startSession(ProblemContent content) {
     return [
       _tutor(

@@ -8,6 +8,8 @@ import '../services/ai_tutor_service.dart';
 import '../services/backend_tutor_service.dart';
 import '../services/content_repository.dart';
 import '../services/mock_ai_tutor_service.dart';
+import '../services/openai_tutor_service.dart';
+import '../services/rule_tutor_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/answer_normalizer.dart';
 import '../widgets/renderer_json_canvas.dart';
@@ -38,7 +40,7 @@ class _JsonRendererPreviewScreenState extends State<JsonRendererPreviewScreen> {
 
   late final Future<List<String>> prefixesFuture;
   late Future<ProblemJsonBundle> bundleFuture;
-  late final AiTutorService tutorService;
+  late AiTutorService tutorService;
   final List<TutorMessage> tutorMessages = [];
   String selectedFilePrefix = 'S3_초등_3_008540';
   String? tutorProblemId;
@@ -47,6 +49,7 @@ class _JsonRendererPreviewScreenState extends State<JsonRendererPreviewScreen> {
   bool tutorBusy = false;
   int hintLevel = 0;
   int tutorStepIndex = 0;
+  TutorMode tutorMode = TutorMode.rule;
 
   @override
   void initState() {
@@ -104,15 +107,22 @@ class _JsonRendererPreviewScreenState extends State<JsonRendererPreviewScreen> {
                               tutorPanel: TutorChatPanel(
                                 key: ValueKey(bundle.filePrefix),
                                 content: content,
+                                mode: tutorMode,
+                                openAiConfigured: _openAiConfigured,
+                                openAiModel: _openAiModel,
                                 messages: tutorMessages,
                                 isBusy: tutorBusy,
                                 submittedAnswer: submittedAnswer,
                                 isCorrect: isCorrect,
+                                onModeChanged: (mode) =>
+                                    _changeTutorMode(content, mode),
                                 onSubmit: (answer) => _submit(content, answer),
                                 onSend: (message) =>
                                     _sendTutorMessage(content, message),
                                 onHint: () => _requestHint(content),
                                 onNextStep: () => _requestNextStep(content),
+                                onRestart: () => _restartTutor(content),
+                                onReset: _resetTutor,
                                 hasNextProblem: false,
                                 onNextProblem: () {},
                               ),
@@ -179,6 +189,43 @@ class _JsonRendererPreviewScreenState extends State<JsonRendererPreviewScreen> {
     }
     tutorProblemId = content.summary.id;
     tutorMessages.clear();
+  }
+
+  void _changeTutorMode(ProblemContent content, TutorMode mode) {
+    setState(() {
+      tutorMode = mode;
+      tutorService = _createTutorService(mode);
+      tutorMessages.clear();
+      tutorMessages.addAll(tutorService.startSession(content));
+      tutorProblemId = content.summary.id;
+      submittedAnswer = null;
+      isCorrect = null;
+      hintLevel = 0;
+      tutorStepIndex = 0;
+    });
+  }
+
+  void _restartTutor(ProblemContent content) {
+    setState(() {
+      tutorMessages.clear();
+      tutorMessages.addAll(tutorService.startSession(content));
+      tutorProblemId = content.summary.id;
+      submittedAnswer = null;
+      isCorrect = null;
+      hintLevel = 0;
+      tutorStepIndex = 0;
+    });
+  }
+
+  void _resetTutor() {
+    setState(() {
+      tutorMessages.clear();
+      tutorProblemId = null;
+      submittedAnswer = null;
+      isCorrect = null;
+      hintLevel = 0;
+      tutorStepIndex = 0;
+    });
   }
 
   Future<void> _submit(ProblemContent content, String answer) async {
@@ -283,15 +330,45 @@ class _JsonRendererPreviewScreenState extends State<JsonRendererPreviewScreen> {
     }
   }
 
-  AiTutorService _createTutorService() {
-    final mode = dotenv.env['AI_TUTOR_MODE']?.toLowerCase().trim() ?? 'mock';
-    if (mode == 'backend') {
+  AiTutorService _createTutorService([TutorMode? overrideMode]) {
+    final mode = overrideMode ?? _modeFromEnv;
+    tutorMode = mode;
+    if (mode == TutorMode.backend) {
       return BackendTutorService(
         baseUrl: dotenv.env['BACKEND_API_BASE_URL'] ?? '',
         sessionToken: dotenv.env['BACKEND_SESSION_TOKEN'],
       );
     }
-    return const MockAiTutorService();
+    if (mode == TutorMode.openai) {
+      return OpenAiTutorService(
+        apiKey: dotenv.env['OPENAI_API_KEY'] ?? '',
+        model: _openAiModel,
+      );
+    }
+    if (mode == TutorMode.mock) {
+      return const MockAiTutorService();
+    }
+    return const RuleTutorService();
+  }
+
+  TutorMode get _modeFromEnv {
+    final mode = dotenv.env['AI_TUTOR_MODE']?.toLowerCase().trim() ?? 'rule';
+    return switch (mode) {
+      'openai' => TutorMode.openai,
+      'backend' => TutorMode.backend,
+      'mock' => TutorMode.mock,
+      _ => TutorMode.rule,
+    };
+  }
+
+  String get _openAiModel {
+    final model = dotenv.env['OPENAI_MODEL']?.trim();
+    return model == null || model.isEmpty ? 'gpt-5.4-nano' : model;
+  }
+
+  bool get _openAiConfigured {
+    final key = dotenv.env['OPENAI_API_KEY']?.trim() ?? '';
+    return key.isNotEmpty && key != 'sk-your-api-key';
   }
 }
 
