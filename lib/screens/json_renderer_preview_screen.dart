@@ -107,6 +107,7 @@ class _JsonRendererPreviewScreenState extends State<JsonRendererPreviewScreen> {
                                 mode: tutorMode,
                                 openAiConfigured: _openAiConfigured,
                                 openAiModel: _openAiModel,
+                                allowOpenAiMode: true,
                                 messages: tutorMessages,
                                 isBusy: tutorBusy,
                                 submittedAnswer: submittedAnswer,

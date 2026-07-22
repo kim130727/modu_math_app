@@ -8,7 +8,6 @@ import '../services/backend_tutor_service.dart';
 import '../services/content_repository.dart';
 import '../services/learning_progress_repository.dart';
 import '../services/mock_ai_tutor_service.dart';
-import '../services/openai_tutor_service.dart';
 import '../services/rule_tutor_service.dart';
 import '../utils/answer_normalizer.dart';
 import '../widgets/problem_svg_viewer.dart';
@@ -302,12 +301,6 @@ class _ProblemSolveScreenState extends State<ProblemSolveScreen> {
         sessionToken: dotenv.env['BACKEND_SESSION_TOKEN'],
       );
     }
-    if (mode == TutorMode.openai) {
-      return OpenAiTutorService(
-        apiKey: dotenv.env['OPENAI_API_KEY'] ?? '',
-        model: _openAiModel,
-      );
-    }
     if (mode == TutorMode.mock) {
       return const MockAiTutorService();
     }
@@ -317,7 +310,6 @@ class _ProblemSolveScreenState extends State<ProblemSolveScreen> {
   TutorMode get _modeFromEnv {
     final mode = dotenv.env['AI_TUTOR_MODE']?.toLowerCase().trim() ?? 'rule';
     return switch (mode) {
-      'openai' => TutorMode.openai,
       'backend' => TutorMode.backend,
       'mock' => TutorMode.mock,
       _ => TutorMode.rule,

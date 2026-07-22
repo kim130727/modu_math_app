@@ -13,6 +13,7 @@ class TutorChatPanel extends StatefulWidget {
     required this.mode,
     required this.openAiConfigured,
     required this.openAiModel,
+    this.allowOpenAiMode = false,
     required this.messages,
     required this.isBusy,
     required this.submittedAnswer,
@@ -32,6 +33,7 @@ class TutorChatPanel extends StatefulWidget {
   final TutorMode mode;
   final bool openAiConfigured;
   final String openAiModel;
+  final bool allowOpenAiMode;
   final List<TutorMessage> messages;
   final bool isBusy;
   final String? submittedAnswer;
@@ -173,12 +175,13 @@ class _TutorChatPanelState extends State<TutorChatPanel> {
                   icon: Icon(Icons.cloud_outlined),
                   label: Text('Backend'),
                 ),
-                ButtonSegment(
-                  value: TutorMode.openai,
-                  enabled: widget.openAiConfigured,
-                  icon: const Icon(Icons.auto_awesome_outlined),
-                  label: const Text('OpenAI'),
-                ),
+                if (widget.allowOpenAiMode)
+                  ButtonSegment(
+                    value: TutorMode.openai,
+                    enabled: widget.openAiConfigured,
+                    icon: const Icon(Icons.auto_awesome_outlined),
+                    label: const Text('OpenAI'),
+                  ),
               ],
               selected: {widget.mode},
               onSelectionChanged: widget.isBusy
