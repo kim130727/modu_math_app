@@ -308,7 +308,16 @@ class RuleTutorService extends AiTutorService {
       if (raw is Map<String, dynamic>) {
         final prompt = _firstString(
           raw,
-          const ['question', 'prompt', 'expr', 'text', 'description', 'id'],
+          const [
+            'question',
+            'prompt',
+            'goal',
+            'description',
+            'explanation',
+            'expr',
+            'text',
+            'id',
+          ],
         );
         final explanation = _firstString(raw, const ['explanation']);
         final expected = raw.containsKey('value')
@@ -507,7 +516,7 @@ String _firstString(Map<String, dynamic> source, List<String> keys) {
 
 String _studentExpectedAnswer(Object? value) {
   if (value is Map<String, dynamic>) {
-    for (final key in const ['result', 'value', 'answer']) {
+    for (final key in const ['result', 'value', 'answer', 'count']) {
       if (value.containsKey(key)) {
         return value[key].toString();
       }
