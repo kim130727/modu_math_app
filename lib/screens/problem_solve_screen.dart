@@ -11,6 +11,7 @@ import '../services/mock_ai_tutor_service.dart';
 import '../services/rule_tutor_service.dart';
 import '../utils/answer_normalizer.dart';
 import '../widgets/problem_svg_viewer.dart';
+import '../widgets/renderer_json_canvas.dart';
 import '../widgets/tutor_chat_panel.dart';
 
 class ProblemSolveScreen extends StatefulWidget {
@@ -88,7 +89,7 @@ class _ProblemSolveScreenState extends State<ProblemSolveScreen> {
           return LayoutBuilder(
             builder: (context, constraints) {
               final wide = constraints.maxWidth >= 960;
-              final svgViewer = ProblemSvgViewer(svg: content.svg);
+              final problemViewer = _ProblemVisual(content: content);
               final tutorPanel = TutorChatPanel(
                 content: content,
                 mode: tutorMode,
@@ -121,7 +122,7 @@ class _ProblemSolveScreenState extends State<ProblemSolveScreen> {
                           children: [
                             Expanded(
                               flex: 5,
-                              child: svgViewer,
+                              child: problemViewer,
                             ),
                             const SizedBox(width: 20),
                             Expanded(
@@ -142,7 +143,7 @@ class _ProblemSolveScreenState extends State<ProblemSolveScreen> {
                 child: ListView(
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                   children: [
-                    SizedBox(height: 340, child: svgViewer),
+                    SizedBox(height: 340, child: problemViewer),
                     const SizedBox(height: 16),
                     tutorPanel,
                   ],
@@ -351,6 +352,37 @@ class _ProblemSolveScreenState extends State<ProblemSolveScreen> {
           problem: widget.unitProblems[nextIndex],
           unitProblems: widget.unitProblems,
           problemIndex: nextIndex,
+        ),
+      ),
+    );
+  }
+}
+
+class _ProblemVisual extends StatelessWidget {
+  const _ProblemVisual({required this.content});
+
+  final ProblemContent content;
+
+  @override
+  Widget build(BuildContext context) {
+    if (content.renderer.isNotEmpty) {
+      return Card(
+        margin: EdgeInsets.zero,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: RendererJsonCanvas(renderer: content.renderer),
+        ),
+      );
+    }
+    if (content.svg.isNotEmpty) {
+      return ProblemSvgViewer(svg: content.svg);
+    }
+    return const Card(
+      margin: EdgeInsets.zero,
+      child: Center(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Text('이 문제는 아직 렌더링 자료가 없습니다.'),
         ),
       ),
     );

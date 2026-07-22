@@ -18,15 +18,15 @@ void main() {
       );
     });
 
-    test('loads a discovered problem through svg semantic and solvable files',
+    test('loads a discovered problem through json renderer and solvable files',
         () async {
       final repository = ContentRepository();
       final manifest = await repository.loadManifest();
 
       final content = await repository.loadProblem(manifest.problems.first);
 
-      expect(content.svg, contains('<svg'));
       expect(content.semantic, isNotEmpty);
+      expect(content.renderer, isNotEmpty);
       expect(content.solvable, isNotEmpty);
       expect(content.correctAnswer, isNotEmpty);
     });

@@ -27,14 +27,20 @@ class ContentRepository {
   }
 
   Future<ProblemContent> loadProblem(ProblemSummary summary) async {
-    final svg = await rootBundle.loadString(summary.assetPath('svg'));
-    final semantic = await _loadJson(summary.assetPath('semantic.json'));
-    final solvable = await _loadSolvable(summary);
+    final filePrefix = summary.filePrefix ?? summary.id;
+    final basePath = await _basePathForPrefix(filePrefix);
+    final semantic = await _loadJson('$basePath.semantic.json');
+    final renderer = await _loadJson('$basePath.renderer.json');
+    final layout = await _loadOptionalJson('$basePath.layout.json');
+    final solvable = await _loadSolvable(basePath);
+    final svg = await _loadOptionalText('$basePath.svg');
     return ProblemContent(
       summary: summary,
       svg: svg,
       semantic: semantic,
       solvable: solvable,
+      layout: layout,
+      renderer: renderer,
     );
   }
 
@@ -71,7 +77,7 @@ class ContentRepository {
     return prefixes;
   }
 
-  Future<Map<String, dynamic>> _loadSolvable(ProblemSummary summary) async {
+  Future<Map<String, dynamic>> _loadSolvable(String basePath) async {
     for (final fileName in const [
       'solvable.json',
       'solvable.v1.2.json',
@@ -79,7 +85,7 @@ class ContentRepository {
       'solvable.v1.json',
     ]) {
       try {
-        return await _loadJson(summary.assetPath(fileName));
+        return await _loadJson('$basePath.$fileName');
       } on FlutterError {
         continue;
       }
@@ -126,7 +132,7 @@ class ContentRepository {
         0,
         semanticPath.length - '.semantic.json'.length,
       );
-      if (!assets.contains('$basePath.svg')) {
+      if (!assets.contains('$basePath.renderer.json')) {
         continue;
       }
 
@@ -191,6 +197,14 @@ class ContentRepository {
       return await _loadJson(assetPath);
     } on FlutterError {
       return const {};
+    }
+  }
+
+  Future<String> _loadOptionalText(String assetPath) async {
+    try {
+      return await rootBundle.loadString(assetPath);
+    } on FlutterError {
+      return '';
     }
   }
 }

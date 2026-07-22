@@ -74,15 +74,19 @@ class ProblemSummary {
 class ProblemContent {
   const ProblemContent({
     required this.summary,
-    required this.svg,
+    this.svg = '',
     required this.semantic,
     required this.solvable,
+    this.layout = const {},
+    this.renderer = const {},
   });
 
   final ProblemSummary summary;
   final String svg;
   final Map<String, dynamic> semantic;
   final Map<String, dynamic> solvable;
+  final Map<String, dynamic> layout;
+  final Map<String, dynamic> renderer;
 
   String get prompt {
     final metadata = _mapAt(semantic, 'metadata');

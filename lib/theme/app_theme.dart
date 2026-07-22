@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 class KidsPalette {
   static const cream = Color(0xFFFAFAF7);
   static const paper = Color(0xFFFFFFFF);
-  static const sage = Color(0xFF28C763);
+  static const sage = Color(0xFF5B67F1);
   static const olive = Color(0xFF8A8F98);
   static const ink = Color(0xFF111111);
   static const cocoa = Color(0xFF111111);
