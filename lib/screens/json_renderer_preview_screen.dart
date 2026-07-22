@@ -21,13 +21,11 @@ class JsonRendererPreviewScreen extends StatefulWidget {
   const JsonRendererPreviewScreen({
     super.key,
     required this.repository,
-    this.progress,
-    this.progressRepository,
+    required this.progressRepository,
   });
 
   final ContentRepository repository;
-  final SessionProgress? progress;
-  final LearningProgressRepository? progressRepository;
+  final LearningProgressRepository progressRepository;
 
   @override
   State<JsonRendererPreviewScreen> createState() =>
@@ -92,7 +90,6 @@ class _JsonRendererPreviewScreenState extends State<JsonRendererPreviewScreen> {
                           MaterialPageRoute<void>(
                             builder: (context) => ProblemListScreen(
                               repository: widget.repository,
-                              progress: widget.progress,
                               progressRepository: widget.progressRepository,
                             ),
                           ),
@@ -230,16 +227,12 @@ class _JsonRendererPreviewScreenState extends State<JsonRendererPreviewScreen> {
 
   Future<void> _submit(ProblemContent content, String answer) async {
     final correct = isSameAnswer(answer, content.correctAnswer);
-    if (widget.progressRepository != null) {
-      await widget.progressRepository!.recordAttempt(
-        problem: content.summary,
-        answer: answer,
-        isCorrect: correct,
-        hintLevelUsed: hintLevel,
-      );
-    } else {
-      widget.progress?.record(content.summary, answer, correct);
-    }
+    await widget.progressRepository.recordAttempt(
+      problem: content.summary,
+      answer: answer,
+      isCorrect: correct,
+      hintLevelUsed: hintLevel,
+    );
     setState(() {
       submittedAnswer = answer;
       isCorrect = correct;

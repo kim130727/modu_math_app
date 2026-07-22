@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 
-import '../models/content_models.dart';
+import '../models/learning_progress.dart';
 
 class ProgressPanel extends StatelessWidget {
-  const ProgressPanel({super.key, required this.progress});
+  const ProgressPanel({super.key, required this.summary});
 
-  final SessionProgress progress;
+  final LearningProgressSummary summary;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final percent = (progress.accuracy * 100).round();
+    final percent = (summary.accuracy * 100).round();
 
     return Card(
       margin: EdgeInsets.zero,
@@ -26,28 +26,28 @@ class ProgressPanel extends StatelessWidget {
               children: [
                 Expanded(
                   child:
-                      _Metric(label: '푼 문제', value: '${progress.solvedCount}'),
+                      _Metric(label: '푼 문제', value: '${summary.solvedCount}'),
                 ),
                 Expanded(
                   child: _Metric(
                     label: '맞힌 문제',
-                    value: '${progress.correctCount}',
+                    value: '${summary.correctCount}',
                   ),
                 ),
                 Expanded(child: _Metric(label: '정답률', value: '$percent%')),
               ],
             ),
-            if (progress.wrongResults.isNotEmpty) ...[
+            if (summary.wrongResults.isNotEmpty) ...[
               const SizedBox(height: 14),
               Text(
-                '틀린 문제',
+                '다시 볼 문제',
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
                       fontSize: 16,
                       fontWeight: FontWeight.w800,
                     ),
               ),
               const SizedBox(height: 6),
-              ...progress.wrongResults.map(
+              ...summary.wrongResults.map(
                 (result) => Text(
                   result.problem.title,
                   maxLines: 1,

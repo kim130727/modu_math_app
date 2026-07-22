@@ -202,43 +202,6 @@ class SolutionStep {
   }
 }
 
-class SessionProgress {
-  final List<ProblemResult> results = [];
-
-  int get solvedCount => results.length;
-
-  int get correctCount => results.where((result) => result.isCorrect).length;
-
-  double get accuracy {
-    if (solvedCount == 0) {
-      return 0;
-    }
-    return correctCount / solvedCount;
-  }
-
-  List<ProblemResult> get wrongResults =>
-      results.where((result) => !result.isCorrect).toList();
-
-  void record(ProblemSummary problem, String answer, bool isCorrect) {
-    results.removeWhere((result) => result.problem.id == problem.id);
-    results.add(
-      ProblemResult(problem: problem, answer: answer, isCorrect: isCorrect),
-    );
-  }
-}
-
-class ProblemResult {
-  const ProblemResult({
-    required this.problem,
-    required this.answer,
-    required this.isCorrect,
-  });
-
-  final ProblemSummary problem;
-  final String answer;
-  final bool isCorrect;
-}
-
 Map<String, dynamic> _mapAt(Map<String, dynamic> map, String key) {
   final value = map[key];
   if (value is Map<String, dynamic>) {

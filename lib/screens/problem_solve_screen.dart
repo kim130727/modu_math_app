@@ -18,7 +18,6 @@ class ProblemSolveScreen extends StatefulWidget {
   const ProblemSolveScreen({
     super.key,
     required this.repository,
-    this.progress,
     this.progressRepository,
     required this.problem,
     this.unitProblems = const [],
@@ -26,7 +25,6 @@ class ProblemSolveScreen extends StatefulWidget {
   });
 
   final ContentRepository repository;
-  final SessionProgress? progress;
   final LearningProgressRepository? progressRepository;
   final ProblemSummary problem;
   final List<ProblemSummary> unitProblems;
@@ -154,16 +152,12 @@ class _ProblemSolveScreenState extends State<ProblemSolveScreen> {
 
   Future<void> _submit(ProblemContent content, String answer) async {
     final correct = isSameAnswer(answer, content.correctAnswer);
-    if (widget.progressRepository != null) {
-      await widget.progressRepository!.recordAttempt(
-        problem: content.summary,
-        answer: answer,
-        isCorrect: correct,
-        hintLevelUsed: hintLevel,
-      );
-    } else {
-      widget.progress?.record(content.summary, answer, correct);
-    }
+    await widget.progressRepository?.recordAttempt(
+      problem: content.summary,
+      answer: answer,
+      isCorrect: correct,
+      hintLevelUsed: hintLevel,
+    );
     setState(() {
       submittedAnswer = answer;
       isCorrect = correct;
@@ -355,7 +349,6 @@ class _ProblemSolveScreenState extends State<ProblemSolveScreen> {
       MaterialPageRoute<void>(
         builder: (context) => ProblemSolveScreen(
           repository: widget.repository,
-          progress: widget.progress,
           progressRepository: widget.progressRepository,
           problem: widget.unitProblems[nextIndex],
           unitProblems: widget.unitProblems,

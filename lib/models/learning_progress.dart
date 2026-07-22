@@ -1,3 +1,5 @@
+import 'content_models.dart';
+
 enum ErrorCategory {
   understandingTarget('understanding_target', '목표 문제 이해 부족'),
   understandingGiven('understanding_given', '주어진 조건 해석 오류'),
@@ -142,9 +144,87 @@ class SkillMastery {
   }
 }
 
+class LearningProgressSummary {
+  const LearningProgressSummary({
+    required this.results,
+  });
+
+  final List<LearningProblemResult> results;
+
+  factory LearningProgressSummary.fromAttempts({
+    required List<ProblemSummary> problems,
+    required List<StudentAttempt> attempts,
+  }) {
+    final problemById = {
+      for (final problem in problems) problem.id: problem,
+    };
+    final latestByProblem = <String, StudentAttempt>{};
+    for (final attempt in attempts) {
+      final existing = latestByProblem[attempt.problemId];
+      if (existing == null || attempt.timestamp.isAfter(existing.timestamp)) {
+        latestByProblem[attempt.problemId] = attempt;
+      }
+    }
+
+    final results = <LearningProblemResult>[];
+    for (final entry in latestByProblem.entries) {
+      final problem = problemById[entry.key];
+      if (problem == null) {
+        continue;
+      }
+      final attempt = entry.value;
+      results.add(
+        LearningProblemResult(
+          problem: problem,
+          answer: attempt.answer,
+          isCorrect: attempt.isCorrect,
+        ),
+      );
+    }
+    return LearningProgressSummary(results: results);
+  }
+
+  int get solvedCount => results.length;
+
+  int get correctCount => results.where((result) => result.isCorrect).length;
+
+  double get accuracy => solvedCount == 0 ? 0 : correctCount / solvedCount;
+
+  List<LearningProblemResult> get wrongResults =>
+      results.where((result) => !result.isCorrect).toList();
+
+  LearningProblemResult? resultFor(String problemId) {
+    return results
+        .where((result) => result.problem.id == problemId)
+        .firstOrNull;
+  }
+}
+
+class LearningProblemResult {
+  const LearningProblemResult({
+    required this.problem,
+    required this.answer,
+    required this.isCorrect,
+  });
+
+  final ProblemSummary problem;
+  final String answer;
+  final bool isCorrect;
+}
+
 int? _readInt(Object? value) {
   if (value is int) {
     return value;
   }
   return int.tryParse(value?.toString() ?? '');
+}
+
+extension _FirstOrNull<T> on Iterable<T> {
+  T? get firstOrNull {
+    final iterator = this.iterator;
+    if (!iterator.moveNext()) {
+      return null;
+    }
+    return iterator.current;
+  }
 }

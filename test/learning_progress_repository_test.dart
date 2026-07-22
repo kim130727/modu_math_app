@@ -60,4 +60,104 @@ void main() {
       expect(queue.first.problemId, equals('P002'));
     });
   });
+
+  group('LearningProgressSummary', () {
+    test('uses the latest attempt for each problem', () {
+      final now = DateTime(2026, 7, 22, 9);
+      final summary = LearningProgressSummary.fromAttempts(
+        problems: const [
+          ProblemSummary(
+            id: 'P001',
+            grade: 3,
+            subject: 'math',
+            unit: 'multiplication',
+            type: 'calc',
+            title: 'Problem 1',
+            path: '',
+            raw: {},
+          ),
+          ProblemSummary(
+            id: 'P002',
+            grade: 3,
+            subject: 'math',
+            unit: 'multiplication',
+            type: 'calc',
+            title: 'Problem 2',
+            path: '',
+            raw: {},
+          ),
+        ],
+        attempts: [
+          StudentAttempt(
+            id: 'old',
+            problemId: 'P001',
+            unit: 'multiplication',
+            answer: '4',
+            isCorrect: false,
+            timestamp: now,
+          ),
+          StudentAttempt(
+            id: 'new',
+            problemId: 'P001',
+            unit: 'multiplication',
+            answer: '6',
+            isCorrect: true,
+            timestamp: now.add(const Duration(minutes: 1)),
+          ),
+          StudentAttempt(
+            id: 'other',
+            problemId: 'P002',
+            unit: 'multiplication',
+            answer: '9',
+            isCorrect: false,
+            timestamp: now,
+          ),
+        ],
+      );
+
+      expect(summary.solvedCount, equals(2));
+      expect(summary.correctCount, equals(1));
+      expect(summary.accuracy, equals(0.5));
+      expect(summary.resultFor('P001')?.answer, equals('6'));
+      expect(summary.wrongResults.single.problem.id, equals('P002'));
+    });
+
+    test('ignores attempts for problems outside the manifest', () {
+      final summary = LearningProgressSummary.fromAttempts(
+        problems: const [
+          ProblemSummary(
+            id: 'P001',
+            grade: 3,
+            subject: 'math',
+            unit: 'multiplication',
+            type: 'calc',
+            title: 'Problem 1',
+            path: '',
+            raw: {},
+          ),
+        ],
+        attempts: [
+          StudentAttempt(
+            id: 'known',
+            problemId: 'P001',
+            unit: 'multiplication',
+            answer: '12',
+            isCorrect: true,
+            timestamp: DateTime(2026, 7, 22),
+          ),
+          StudentAttempt(
+            id: 'unknown',
+            problemId: 'P999',
+            unit: 'multiplication',
+            answer: '99',
+            isCorrect: false,
+            timestamp: DateTime(2026, 7, 22),
+          ),
+        ],
+      );
+
+      expect(summary.solvedCount, equals(1));
+      expect(summary.resultFor('P999'), isNull);
+    });
+  });
 }

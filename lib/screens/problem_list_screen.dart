@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/content_models.dart';
+import '../models/learning_progress.dart';
 import '../services/content_repository.dart';
 import '../services/learning_progress_repository.dart';
 import '../widgets/progress_panel.dart';
@@ -10,14 +11,12 @@ class ProblemListScreen extends StatefulWidget {
   const ProblemListScreen({
     super.key,
     required this.repository,
-    this.progress,
-    this.progressRepository,
+    required this.progressRepository,
     this.initialUnit,
   });
 
   final ContentRepository repository;
-  final SessionProgress? progress;
-  final LearningProgressRepository? progressRepository;
+  final LearningProgressRepository progressRepository;
   final String? initialUnit;
 
   @override
@@ -25,14 +24,23 @@ class ProblemListScreen extends StatefulWidget {
 }
 
 class _ProblemListScreenState extends State<ProblemListScreen> {
-  late final Future<ProblemManifest> manifestFuture;
+  late Future<_ProblemListData> dataFuture;
   String? selectedUnit;
 
   @override
   void initState() {
     super.initState();
     selectedUnit = widget.initialUnit;
-    manifestFuture = widget.repository.loadManifest();
+    dataFuture = _loadData();
+  }
+
+  Future<_ProblemListData> _loadData() async {
+    final manifest = await widget.repository.loadManifest();
+    final summary = LearningProgressSummary.fromAttempts(
+      problems: manifest.problems,
+      attempts: await widget.progressRepository.getAttempts(),
+    );
+    return _ProblemListData(manifest: manifest, summary: summary);
   }
 
   @override
@@ -47,8 +55,8 @@ class _ProblemListScreenState extends State<ProblemListScreen> {
                 onPressed: () => setState(() => selectedUnit = null),
               ),
       ),
-      body: FutureBuilder<ProblemManifest>(
-        future: manifestFuture,
+      body: FutureBuilder<_ProblemListData>(
+        future: dataFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState != ConnectionState.done) {
             return const Center(child: CircularProgressIndicator());
@@ -65,19 +73,18 @@ class _ProblemListScreenState extends State<ProblemListScreen> {
             );
           }
 
-          final problems = snapshot.data?.problems ?? const <ProblemSummary>[];
-          final effectiveProgress = widget.progress ?? SessionProgress();
+          final data = snapshot.data ?? const _ProblemListData.empty();
           return selectedUnit == null
               ? _UnitOverview(
-                  problems: problems,
-                  progress: effectiveProgress,
+                  problems: data.manifest.problems,
+                  summary: data.summary,
                   onOpenUnit: (unit) => setState(() => selectedUnit = unit),
                 )
               : _UnitJourney(
-                  problems: problems
+                  problems: data.manifest.problems
                       .where((problem) => problem.unit == selectedUnit)
                       .toList(),
-                  progress: effectiveProgress,
+                  summary: data.summary,
                   onOpenProblem: _openProblem,
                 );
         },
@@ -86,10 +93,12 @@ class _ProblemListScreenState extends State<ProblemListScreen> {
   }
 
   Future<void> _openProblem(ProblemSummary problem) async {
-    final manifest = await manifestFuture;
+    final data = await dataFuture;
     final unitProblems = selectedUnit == null
         ? const <ProblemSummary>[]
-        : (manifest.problems.where((item) => item.unit == selectedUnit).toList()
+        : (data.manifest.problems
+            .where((item) => item.unit == selectedUnit)
+            .toList()
           ..sort((a, b) => a.id.compareTo(b.id)));
     final problemIndex =
         unitProblems.indexWhere((item) => item.id == problem.id);
@@ -101,7 +110,6 @@ class _ProblemListScreenState extends State<ProblemListScreen> {
       MaterialPageRoute<void>(
         builder: (context) => ProblemSolveScreen(
           repository: widget.repository,
-          progress: widget.progress,
           progressRepository: widget.progressRepository,
           problem: problem,
           unitProblems: unitProblems,
@@ -110,7 +118,9 @@ class _ProblemListScreenState extends State<ProblemListScreen> {
       ),
     );
     if (mounted) {
-      setState(() {});
+      setState(() {
+        dataFuture = _loadData();
+      });
     }
   }
 }
@@ -118,12 +128,12 @@ class _ProblemListScreenState extends State<ProblemListScreen> {
 class _UnitOverview extends StatelessWidget {
   const _UnitOverview({
     required this.problems,
-    required this.progress,
+    required this.summary,
     required this.onOpenUnit,
   });
 
   final List<ProblemSummary> problems;
-  final SessionProgress progress;
+  final LearningProgressSummary summary;
   final ValueChanged<String> onOpenUnit;
 
   @override
@@ -160,7 +170,7 @@ class _UnitOverview extends StatelessWidget {
         if (!wide) {
           return Column(
             children: [
-              ProgressPanel(progress: progress),
+              ProgressPanel(summary: summary),
               Expanded(child: grid),
             ],
           );
@@ -173,7 +183,7 @@ class _UnitOverview extends StatelessWidget {
               width: 280,
               child: Padding(
                 padding: const EdgeInsets.all(16),
-                child: ProgressPanel(progress: progress),
+                child: ProgressPanel(summary: summary),
               ),
             ),
             Expanded(child: grid),
@@ -187,20 +197,19 @@ class _UnitOverview extends StatelessWidget {
 class _UnitJourney extends StatelessWidget {
   const _UnitJourney({
     required this.problems,
-    required this.progress,
+    required this.summary,
     required this.onOpenProblem,
   });
 
   final List<ProblemSummary> problems;
-  final SessionProgress progress;
+  final LearningProgressSummary summary;
   final ValueChanged<ProblemSummary> onOpenProblem;
 
   @override
   Widget build(BuildContext context) {
     final orderedProblems = [...problems]..sort((a, b) => a.id.compareTo(b.id));
     final firstUnsolved = orderedProblems.indexWhere(
-      (problem) =>
-          !progress.results.any((result) => result.problem.id == problem.id),
+      (problem) => summary.resultFor(problem.id) == null,
     );
     final startIndex = firstUnsolved == -1 ? 0 : firstUnsolved;
 
@@ -222,15 +231,12 @@ class _UnitJourney extends StatelessWidget {
             ...orderedProblems.indexed.map((entry) {
               final index = entry.$1;
               final problem = entry.$2;
-              final result = progress.results
-                  .where((item) => item.problem.id == problem.id)
-                  .firstOrNull;
               return Padding(
                 padding: const EdgeInsets.only(bottom: 10),
                 child: _JourneyStepTile(
                   stepNumber: index + 1,
                   problem: problem,
-                  result: result,
+                  result: summary.resultFor(problem.id),
                   onTap: () => onOpenProblem(problem),
                 ),
               );
@@ -241,7 +247,7 @@ class _UnitJourney extends StatelessWidget {
         if (!wide) {
           return Column(
             children: [
-              ProgressPanel(progress: progress),
+              ProgressPanel(summary: summary),
               Expanded(child: content),
             ],
           );
@@ -254,7 +260,7 @@ class _UnitJourney extends StatelessWidget {
               width: 280,
               child: Padding(
                 padding: const EdgeInsets.all(16),
-                child: ProgressPanel(progress: progress),
+                child: ProgressPanel(summary: summary),
               ),
             ),
             Expanded(child: content),
@@ -326,7 +332,7 @@ class _JourneyStepTile extends StatelessWidget {
 
   final int stepNumber;
   final ProblemSummary problem;
-  final ProblemResult? result;
+  final LearningProblemResult? result;
   final VoidCallback onTap;
 
   @override
@@ -376,7 +382,7 @@ class _JourneyStepTile extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'AI 튜터와 함께 풀이',
+                      'AI 튜터와 함께 풀기',
                       style: TextStyle(
                         color: colorScheme.onSurfaceVariant,
                         fontWeight: FontWeight.w600,
@@ -396,16 +402,6 @@ class _JourneyStepTile extends StatelessWidget {
         ),
       ),
     );
-  }
-}
-
-extension _FirstOrNull<T> on Iterable<T> {
-  T? get firstOrNull {
-    final iterator = this.iterator;
-    if (!iterator.moveNext()) {
-      return null;
-    }
-    return iterator.current;
   }
 }
 
@@ -468,4 +464,22 @@ class _UnitCard extends StatelessWidget {
       ),
     );
   }
+}
+
+class _ProblemListData {
+  const _ProblemListData({
+    required this.manifest,
+    required this.summary,
+  });
+
+  const _ProblemListData.empty()
+      : manifest = const ProblemManifest(
+          version: '0.0.0',
+          problems: [],
+          raw: {},
+        ),
+        summary = const LearningProgressSummary(results: []);
+
+  final ProblemManifest manifest;
+  final LearningProgressSummary summary;
 }
