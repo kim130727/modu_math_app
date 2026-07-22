@@ -6,7 +6,9 @@ import 'app/app.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  if (!kIsWeb) {
+  if (kIsWeb) {
+    dotenv.loadFromString(envString: '', isOptional: true);
+  } else {
     await dotenv.load(fileName: '.env', isOptional: true);
   }
   runApp(const ModuMathApp());
