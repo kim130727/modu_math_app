@@ -1,10 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import '../models/content_models.dart';
 import '../models/tutor_models.dart';
 import '../services/ai_tutor_service.dart';
+import '../services/app_environment.dart';
 import '../services/backend_tutor_service.dart';
 import '../services/content_repository.dart';
 import '../services/mock_ai_tutor_service.dart';
@@ -335,13 +335,13 @@ class _JsonRendererPreviewScreenState extends State<JsonRendererPreviewScreen> {
     tutorMode = mode;
     if (mode == TutorMode.backend) {
       return BackendTutorService(
-        baseUrl: dotenv.env['BACKEND_API_BASE_URL'] ?? '',
-        sessionToken: dotenv.env['BACKEND_SESSION_TOKEN'],
+        baseUrl: AppEnvironment.backendBaseUrl,
+        sessionToken: AppEnvironment.backendSessionToken,
       );
     }
     if (mode == TutorMode.openai) {
       return OpenAiTutorService(
-        apiKey: dotenv.env['OPENAI_API_KEY'] ?? '',
+        apiKey: AppEnvironment.openAiApiKey,
         model: _openAiModel,
       );
     }
@@ -352,7 +352,7 @@ class _JsonRendererPreviewScreenState extends State<JsonRendererPreviewScreen> {
   }
 
   TutorMode get _modeFromEnv {
-    final mode = dotenv.env['AI_TUTOR_MODE']?.toLowerCase().trim() ?? 'rule';
+    final mode = AppEnvironment.aiTutorMode;
     return switch (mode) {
       'openai' => TutorMode.openai,
       'backend' => TutorMode.backend,
@@ -362,13 +362,11 @@ class _JsonRendererPreviewScreenState extends State<JsonRendererPreviewScreen> {
   }
 
   String get _openAiModel {
-    final model = dotenv.env['OPENAI_MODEL']?.trim();
-    return model == null || model.isEmpty ? 'gpt-5.4-nano' : model;
+    return AppEnvironment.openAiModel;
   }
 
   bool get _openAiConfigured {
-    final key = dotenv.env['OPENAI_API_KEY']?.trim() ?? '';
-    return key.isNotEmpty && key != 'sk-your-api-key';
+    return AppEnvironment.openAiConfigured;
   }
 }
 
