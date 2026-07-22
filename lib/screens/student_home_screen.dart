@@ -7,7 +7,7 @@ import '../services/content_repository.dart';
 import '../services/learning_progress_repository.dart';
 import '../services/recommendation_service.dart';
 import '../theme/app_theme.dart';
-import 'json_renderer_preview_screen.dart';
+import '../app/router.dart';
 import 'learning_report_screen.dart';
 import 'problem_list_screen.dart';
 import 'problem_solve_screen.dart';
@@ -83,7 +83,8 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
         actions: [
           IconButton(
             tooltip: '오답노트 & 사고 복습',
-            icon: const Icon(Icons.fact_check_outlined, color: KidsPalette.cocoa),
+            icon:
+                const Icon(Icons.fact_check_outlined, color: KidsPalette.cocoa),
             onPressed: () async {
               await Navigator.of(context).push(
                 MaterialPageRoute<void>(
@@ -115,14 +116,8 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
             icon:
                 const Icon(Icons.developer_mode, color: KidsPalette.cocoaSoft),
             onPressed: () async {
-              await Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (context) => JsonRendererPreviewScreen(
-                    repository: widget.repository,
-                    progressRepository: widget.progressRepository,
-                  ),
-                ),
-              );
+              await Navigator.of(context)
+                  .pushNamed(ModuMathRoutes.developerStudio);
               _refresh();
             },
           ),
