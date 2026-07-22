@@ -28,11 +28,24 @@ class RendererJsonCanvas extends StatelessWidget {
                   color: Theme.of(context).colorScheme.outlineVariant,
                 ),
               ),
-              child: CustomPaint(
-                painter: RendererJsonPainter(
-                  renderer: renderer,
-                  logicalSize: Size(width, height),
-                ),
+              child: LayoutBuilder(
+                builder: (context, canvasConstraints) {
+                  final scale = canvasConstraints.maxWidth / width;
+                  return Stack(
+                    clipBehavior: Clip.hardEdge,
+                    children: [
+                      Positioned.fill(
+                        child: CustomPaint(
+                          painter: RendererJsonPainter(
+                            renderer: renderer,
+                            logicalSize: Size(width, height),
+                          ),
+                        ),
+                      ),
+                      ..._textBoxLayers(renderer, scale),
+                    ],
+                  );
+                },
               ),
             ),
           ),
@@ -85,8 +98,6 @@ class RendererJsonPainter extends CustomPainter {
         _paintRect(canvas, attributes);
       case 'text':
         _paintText(canvas, element, attributes);
-      case 'text_box':
-        _paintTextBox(canvas, element, attributes);
     }
   }
 
@@ -221,17 +232,27 @@ class RendererJsonPainter extends CustomPainter {
     );
   }
 
-  void _paintTextBox(
-    Canvas canvas,
-    Map<String, dynamic> element,
-    Map<String, dynamic> attributes,
-  ) {
-    final text = element['text']?.toString() ?? '';
+  @override
+  bool shouldRepaint(RendererJsonPainter oldDelegate) {
+    return oldDelegate.renderer != renderer ||
+        oldDelegate.logicalSize != logicalSize;
+  }
+}
+
+List<Widget> _textBoxLayers(Map<String, dynamic> renderer, double scale) {
+  final elements = renderer['elements'];
+  if (elements is! List) {
+    return const [];
+  }
+  return elements
+      .whereType<Map<String, dynamic>>()
+      .where((element) => element['type']?.toString() == 'text_box')
+      .map((element) {
+    final attributes = _mapAt(element, 'attributes');
     final fontSize = _readDouble(attributes['font-size']) ?? 18;
     final lineHeight = _readDouble(attributes['data-line-height']) ??
         _readDouble(attributes['line-height']) ??
         1.35;
-    final fill = _readColor(attributes['fill']) ?? Colors.black;
     final x = _readDouble(attributes['x']) ?? 0;
     final y = _readDouble(attributes['y']) ?? 0;
     final width = _readDouble(attributes['width']) ??
@@ -239,39 +260,35 @@ class RendererJsonPainter extends CustomPainter {
         860;
     final height = _readDouble(attributes['height']) ?? fontSize * lineHeight;
     final align = _readTextAlign(attributes['data-text-align']);
+    final verticalAlign = _readAlignment(
+      horizontal: align,
+      vertical: attributes['data-vertical-align'],
+    );
 
-    final painter = TextPainter(
-      text: TextSpan(
-        text: text,
-        style: GoogleFonts.notoSansKr(
-          color: fill,
-          fontSize: fontSize,
-          fontWeight: FontWeight.w600,
-          height: lineHeight,
+    return Positioned(
+      left: x * scale,
+      top: y * scale,
+      width: width * scale,
+      height: height * scale,
+      child: ClipRect(
+        child: Align(
+          alignment: verticalAlign,
+          child: Text(
+            element['text']?.toString() ?? '',
+            textAlign: align,
+            softWrap: true,
+            overflow: TextOverflow.clip,
+            style: GoogleFonts.notoSansKr(
+              color: _readColor(attributes['fill']) ?? Colors.black,
+              fontSize: fontSize * scale,
+              fontWeight: FontWeight.w600,
+              height: lineHeight,
+            ),
+          ),
         ),
       ),
-      textAlign: align,
-      textDirection: TextDirection.ltr,
-    )..layout(maxWidth: width);
-
-    final verticalAlign = attributes['data-vertical-align']?.toString();
-    final dy = switch (verticalAlign) {
-      'middle' => y + (height - painter.height) / 2,
-      'bottom' => y + height - painter.height,
-      _ => y,
-    };
-
-    canvas.save();
-    canvas.clipRect(Rect.fromLTWH(x, y, width, height));
-    painter.paint(canvas, Offset(x, dy));
-    canvas.restore();
-  }
-
-  @override
-  bool shouldRepaint(RendererJsonPainter oldDelegate) {
-    return oldDelegate.renderer != renderer ||
-        oldDelegate.logicalSize != logicalSize;
-  }
+    );
+  }).toList(growable: false);
 }
 
 Map<String, dynamic> _mapAt(Map<String, dynamic> map, String key) {
@@ -312,6 +329,23 @@ TextAlign _readTextAlign(Object? value) {
     'right' => TextAlign.right,
     _ => TextAlign.left,
   };
+}
+
+Alignment _readAlignment({
+  required TextAlign horizontal,
+  required Object? vertical,
+}) {
+  final x = switch (horizontal) {
+    TextAlign.center => 0.0,
+    TextAlign.right => 1.0,
+    _ => -1.0,
+  };
+  final y = switch (vertical?.toString()) {
+    'middle' => 0.0,
+    'bottom' => 1.0,
+    _ => -1.0,
+  };
+  return Alignment(x, y);
 }
 
 Color? _readColor(Object? value) {

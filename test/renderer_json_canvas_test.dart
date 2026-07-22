@@ -31,7 +31,7 @@ void main() {
                       'data-vertical-align': 'top',
                       'data-line-height': 1.45,
                     },
-                    'text': '지난 일요일 상현이네와 용진이네 가족은 주말 농장에 갔습니다.',
+                    'text': 'problem text',
                   },
                 ],
               },
@@ -42,6 +42,7 @@ void main() {
     );
 
     expect(find.byType(RendererJsonCanvas), findsOneWidget);
+    expect(find.text('problem text'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }
