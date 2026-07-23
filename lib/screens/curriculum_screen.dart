@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../app/router.dart';
 import '../models/content_models.dart';
 import '../services/content_repository.dart';
 import '../services/learning_progress_repository.dart';
 import '../theme/app_theme.dart';
-import '../app/router.dart';
 
 class CurriculumScreen extends StatefulWidget {
   const CurriculumScreen({
@@ -37,8 +37,6 @@ class _CurriculumScreenState extends State<CurriculumScreen> {
       backgroundColor: KidsPalette.cream,
       appBar: AppBar(
         title: const Text('단원 학습'),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
       ),
       body: SafeArea(
         child: FutureBuilder<ProblemManifest>(
@@ -51,7 +49,7 @@ class _CurriculumScreenState extends State<CurriculumScreen> {
               return Center(
                 child: Padding(
                   padding: const EdgeInsets.all(24),
-                  child: Text('단원 정보를 불러오지 못했습니다.\n${snapshot.error}'),
+                  child: Text('단원 정보를 불러오지 못했어요.\n${snapshot.error}'),
                 ),
               );
             }
@@ -60,7 +58,7 @@ class _CurriculumScreenState extends State<CurriculumScreen> {
               snapshot.data?.problems ?? const <ProblemSummary>[],
             );
             if (groups.isEmpty) {
-              return const Center(child: Text('아직 학습할 문제가 없습니다.'));
+              return const Center(child: Text('아직 학습할 문제가 없어요.'));
             }
 
             return ListView(
@@ -104,14 +102,15 @@ class _CurriculumHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: KidsPalette.butter,
+        color: const Color(0xFFECEEFF),
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: KidsPalette.line),
       ),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Row(
           children: [
-            const Icon(Icons.map_outlined, color: KidsPalette.cocoa, size: 32),
+            const Icon(Icons.map_outlined, color: KidsPalette.sage, size: 32),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
@@ -119,14 +118,11 @@ class _CurriculumHeader extends StatelessWidget {
                 children: [
                   Text(
                     '오늘 배울 단원을 골라요',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: KidsPalette.ink,
-                        ),
+                    style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '단원을 고르면 문제 풀이와 튜터가 바로 이어집니다.',
+                    '단원을 고르면 문제 풀이와 Rule Tutor가 바로 이어집니다.',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: KidsPalette.cocoaSoft,
                         ),
@@ -159,10 +155,7 @@ class _CurriculumSection extends StatelessWidget {
       children: [
         Text(
           '${group.grade}학년 ${group.semester}',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: KidsPalette.ink,
-              ),
+          style: Theme.of(context).textTheme.titleMedium,
         ),
         const SizedBox(height: 10),
         LayoutBuilder(
@@ -225,8 +218,8 @@ class _UnitTile extends StatelessWidget {
             children: [
               CircleAvatar(
                 backgroundColor:
-                    selected ? KidsPalette.sage : KidsPalette.butter,
-                foregroundColor: selected ? Colors.white : KidsPalette.cocoa,
+                    selected ? KidsPalette.sage : const Color(0xFFECEEFF),
+                foregroundColor: selected ? Colors.white : KidsPalette.sage,
                 child: Text('${unit.number}'),
               ),
               const SizedBox(width: 14),
@@ -239,22 +232,17 @@ class _UnitTile extends StatelessWidget {
                       unit.topic,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                      style: Theme.of(context).textTheme.titleMedium,
                     ),
                     const SizedBox(height: 4),
                     Text(
                       '${unit.problemCount}문제',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: KidsPalette.cocoaSoft,
-                            fontWeight: FontWeight.w700,
-                          ),
+                      style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right, color: KidsPalette.cocoa),
+              const Icon(Icons.chevron_right, color: KidsPalette.sage),
             ],
           ),
         ),

@@ -48,8 +48,6 @@ class _LearningSessionScreenState extends State<LearningSessionScreen> {
       backgroundColor: KidsPalette.cream,
       appBar: AppBar(
         title: const Text('학습 세션'),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
       ),
       body: SafeArea(
         child: FutureBuilder<_SessionData>(
@@ -62,14 +60,14 @@ class _LearningSessionScreenState extends State<LearningSessionScreen> {
               return Center(
                 child: Padding(
                   padding: const EdgeInsets.all(24),
-                  child: Text('학습 세션을 준비하지 못했습니다.\n${snapshot.error}'),
+                  child: Text('학습 세션을 준비하지 못했어요.\n${snapshot.error}'),
                 ),
               );
             }
 
             final data = snapshot.data ?? const _SessionData.empty();
             if (data.problems.isEmpty) {
-              return const Center(child: Text('이 단원에는 아직 문제가 없습니다.'));
+              return const Center(child: Text('이 단원에는 아직 문제가 없어요.'));
             }
 
             final nextIndex = data.nextProblemIndex;
@@ -96,7 +94,7 @@ class _LearningSessionScreenState extends State<LearningSessionScreen> {
                   icon: Icon(data.isComplete ? Icons.replay : Icons.play_arrow),
                   label: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 14),
-                    child: Text(data.isComplete ? '다시 풀기' : '이어서 풀기'),
+                    child: Text(data.isComplete ? '다시 풀기' : '이어 풀기'),
                   ),
                 ),
               ],
@@ -149,21 +147,16 @@ class _SessionHeader extends StatelessWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: KidsPalette.butter,
+        color: const Color(0xFFECEEFF),
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: KidsPalette.line),
       ),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              unit,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: KidsPalette.ink,
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
+            Text(unit, style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 10),
             LinearProgressIndicator(
               value: progress,
@@ -184,17 +177,13 @@ class _SessionHeader extends StatelessWidget {
             Text(
               complete ? '모두 풀었어요. 다시 연습할 수 있어요.' : '다음 문제',
               style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: KidsPalette.cocoa,
-                    fontWeight: FontWeight.bold,
+                    color: KidsPalette.sage,
                   ),
             ),
             const SizedBox(height: 4),
             Text(
               nextTitle,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: KidsPalette.ink,
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: Theme.of(context).textTheme.titleMedium,
             ),
           ],
         ),
@@ -232,11 +221,15 @@ class _ProblemPreviewList extends StatelessWidget {
           return ListTile(
             leading: CircleAvatar(
               backgroundColor: correct
-                  ? const Color(0xFFDCFCE7)
+                  ? KidsPalette.mint
                   : next
-                      ? KidsPalette.butter
+                      ? const Color(0xFFECEEFF)
                       : KidsPalette.paper,
-              foregroundColor: KidsPalette.ink,
+              foregroundColor: correct
+                  ? KidsPalette.success
+                  : next
+                      ? KidsPalette.sage
+                      : KidsPalette.olive,
               child: Icon(
                 correct
                     ? Icons.check

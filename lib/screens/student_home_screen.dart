@@ -92,19 +92,18 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
               onRefresh: () async => _refresh(),
               child: LayoutBuilder(
                 builder: (context, constraints) {
-                  final wide = constraints.maxWidth >= 1180;
-                  final horizontal = wide ? 24.0 : 16.0;
-
+                  final wide = constraints.maxWidth >= 1080;
+                  final horizontal = wide ? 28.0 : 16.0;
                   return ListView(
                     padding:
-                        EdgeInsets.fromLTRB(horizontal, 18, horizontal, 32),
+                        EdgeInsets.fromLTRB(horizontal, 16, horizontal, 32),
                     children: [
                       _TopNavigation(
-                        onReview: () => _openReview(),
-                        onProgress: () => _openProgress(),
+                        onReview: _openReview,
+                        onProgress: _openProgress,
                       ),
-                      const SizedBox(height: 48),
-                      _HeroPanel(
+                      const SizedBox(height: 24),
+                      _TodayPanel(
                         wide: wide,
                         profile: profile,
                         dailySummary: dailySummary,
@@ -114,7 +113,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                             : () => _startDailyChallenge(recommendations),
                         onCurriculum: _openCurriculum,
                       ),
-                      const SizedBox(height: 26),
+                      const SizedBox(height: 24),
                       _UnitRail(
                         problems: manifest.problems,
                         onOpenUnit: (unit) =>
@@ -190,21 +189,20 @@ class _TopNavigation extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 72,
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+      height: 64,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
         color: KidsPalette.paper,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: KidsPalette.line),
       ),
       child: Row(
         children: [
-          const Icon(Icons.school_rounded, color: KidsPalette.ink, size: 30),
+          const Icon(Icons.school_rounded, color: KidsPalette.ink, size: 28),
           const SizedBox(width: 10),
           Text(
             '모두수학',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontSize: 24,
                   fontWeight: FontWeight.w900,
                 ),
           ),
@@ -225,8 +223,8 @@ class _TopNavigation extends StatelessWidget {
   }
 }
 
-class _HeroPanel extends StatelessWidget {
-  const _HeroPanel({
+class _TodayPanel extends StatelessWidget {
+  const _TodayPanel({
     required this.wide,
     required this.profile,
     required this.dailySummary,
@@ -244,40 +242,41 @@ class _HeroPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final preview = _LearningPreview(
-      recommendation: recommendations.isEmpty ? null : recommendations.first,
-      dailySummary: dailySummary,
-      targetDailyCount: profile.targetDailyCount,
-    );
-
-    final copy = _HeroCopy(
+    final firstProblem =
+        recommendations.isEmpty ? null : recommendations.first.problem;
+    final content = _TodayCopy(
       profile: profile,
       dailySummary: dailySummary,
       onStart: onStart,
       onCurriculum: onCurriculum,
     );
+    final preview = _LearningPreview(
+      problem: firstProblem,
+      dailySummary: dailySummary,
+      targetDailyCount: profile.targetDailyCount,
+    );
 
     return Container(
-      constraints: BoxConstraints(minHeight: wide ? 620 : 0),
-      padding: EdgeInsets.all(wide ? 42 : 22),
+      padding: EdgeInsets.all(wide ? 32 : 20),
       decoration: BoxDecoration(
-        color: const Color(0xFFF1F1EE),
-        borderRadius: BorderRadius.circular(28),
+        color: const Color(0xFFF7F8FC),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: KidsPalette.line),
       ),
       child: wide
           ? Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Expanded(flex: 5, child: copy),
-                const SizedBox(width: 38),
-                Expanded(flex: 7, child: preview),
+                Expanded(flex: 5, child: content),
+                const SizedBox(width: 28),
+                Expanded(flex: 6, child: preview),
               ],
             )
           : Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                copy,
-                const SizedBox(height: 24),
+                content,
+                const SizedBox(height: 22),
                 preview,
               ],
             ),
@@ -285,8 +284,8 @@ class _HeroPanel extends StatelessWidget {
   }
 }
 
-class _HeroCopy extends StatelessWidget {
-  const _HeroCopy({
+class _TodayCopy extends StatelessWidget {
+  const _TodayCopy({
     required this.profile,
     required this.dailySummary,
     required this.onStart,
@@ -303,63 +302,57 @@ class _HeroCopy extends StatelessWidget {
     final compactType = MediaQuery.sizeOf(context).width < 460;
 
     return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '스스로 생각하는\n초등 수학 튜터',
+          '오늘은 한 문제씩\n생각해 볼까요?',
           style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                fontSize: compactType ? 36 : 46,
+                fontSize: compactType ? 32 : 42,
                 letterSpacing: 0,
               ),
         ),
-        const SizedBox(height: 22),
+        const SizedBox(height: 14),
         Text(
-          '${profile.grade}학년 ${profile.name}에게 맞춘 문제로 오늘의 생각 단계를 확인해요.',
+          '${profile.grade}학년 ${profile.name}에게 맞춘 문제로 풀이 단계를 천천히 확인해요.',
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                 color: KidsPalette.cocoaSoft,
-                fontSize: 19,
-                height: 1.55,
+                height: 1.5,
               ),
         ),
-        const SizedBox(height: 34),
+        const SizedBox(height: 22),
         _HeroStats(
           solved: dailySummary.totalAttempted,
           target: profile.targetDailyCount,
           accuracy: dailySummary.accuracy,
         ),
-        const SizedBox(height: 34),
+        const SizedBox(height: 24),
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 420),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              FilledButton(
+              FilledButton.icon(
                 onPressed: onStart,
+                icon: const Icon(Icons.play_arrow_rounded),
                 style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(64),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(32),
-                  ),
+                  minimumSize: const Size.fromHeight(58),
                 ),
-                child: const Text(
-                  '학습 시작',
+                label: const Text(
+                  '오늘 학습 시작',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
                 ),
               ),
-              const SizedBox(height: 12),
-              OutlinedButton(
+              const SizedBox(height: 10),
+              OutlinedButton.icon(
                 onPressed: onCurriculum,
+                icon: const Icon(Icons.list_alt_rounded),
                 style: OutlinedButton.styleFrom(
                   backgroundColor: KidsPalette.paper,
-                  minimumSize: const Size.fromHeight(58),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
+                  minimumSize: const Size.fromHeight(54),
                 ),
-                child: const Text(
+                label: const Text(
                   '단원에서 고르기',
-                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
                 ),
               ),
             ],
@@ -383,10 +376,11 @@ class _HeroStats extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
       children: [
         _StatPill(label: '오늘', value: '$solved/$target'),
-        const SizedBox(width: 10),
         _StatPill(label: '정답률', value: '${(accuracy * 100).round()}%'),
       ],
     );
@@ -412,6 +406,7 @@ class _StatPill extends StatelessWidget {
         border: Border.all(color: KidsPalette.line),
       ),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Text(label, style: Theme.of(context).textTheme.bodySmall),
           const SizedBox(width: 8),
@@ -424,85 +419,51 @@ class _StatPill extends StatelessWidget {
 
 class _LearningPreview extends StatelessWidget {
   const _LearningPreview({
-    required this.recommendation,
+    required this.problem,
     required this.dailySummary,
     required this.targetDailyCount,
   });
 
-  final RecommendedProblem? recommendation;
+  final ProblemSummary? problem;
   final DailySummary dailySummary;
   final int targetDailyCount;
 
   @override
   Widget build(BuildContext context) {
-    final problem = recommendation?.problem;
+    final ratio = targetDailyCount == 0
+        ? 0.0
+        : (dailySummary.totalAttempted / targetDailyCount).clamp(0.0, 1.0);
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final compact = constraints.maxWidth < 560;
-
-        return AspectRatio(
-          aspectRatio: compact ? 0.9 : 1.45,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(34),
-            child: DecoratedBox(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Color(0xFFEDEBE4),
-                    Color(0xFFD8D6CE),
-                  ],
-                ),
-              ),
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: CustomPaint(painter: _PreviewGridPainter()),
-                  ),
-                  if (!compact)
-                    Positioned(
-                      left: 34,
-                      top: 34,
-                      bottom: 34,
-                      width: 210,
-                      child: _StudentSilhouette(
-                        grade: problem?.grade ?? 3,
-                      ),
-                    ),
-                  Positioned(
-                    left: compact ? 22 : null,
-                    right: compact ? 22 : 34,
-                    top: compact ? 26 : 48,
-                    bottom: compact ? 146 : 58,
-                    width: compact ? null : 360,
-                    child: _ProblemPreviewCard(problem: problem),
-                  ),
-                  Positioned(
-                    left: compact ? 28 : null,
-                    right: compact ? null : 430,
-                    bottom: compact ? 24 : 42,
-                    child: _ProgressGem(
-                      solved: dailySummary.totalAttempted,
-                      target: targetDailyCount,
-                      compact: compact,
-                    ),
-                  ),
-                  Positioned(
-                    left: compact ? 122 : null,
-                    right: compact ? 22 : 34,
-                    bottom: compact ? 30 : 28,
-                    child: _PreviewCaption(
-                      text: problem?.title ?? '오늘 풀 문제를 준비하고 있어요.',
-                    ),
-                  ),
-                ],
+    return AspectRatio(
+      aspectRatio: 1.55,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: KidsPalette.paper,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: KidsPalette.line),
+        ),
+        child: Stack(
+          children: [
+            Positioned.fill(child: CustomPaint(painter: _PreviewGridPainter())),
+            Positioned(
+              left: 20,
+              top: 20,
+              right: 20,
+              child: _ProblemPreviewCard(problem: problem),
+            ),
+            Positioned(
+              left: 20,
+              right: 20,
+              bottom: 20,
+              child: _ProgressStrip(
+                value: ratio,
+                title: problem?.unit ?? '오늘의 문제',
+                caption: problem?.title ?? '추천 문제를 준비하고 있어요.',
               ),
             ),
-          ),
-        );
-      },
+          ],
+        ),
+      ),
     );
   }
 }
@@ -516,42 +477,46 @@ class _ProblemPreviewCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: KidsPalette.paper,
-        borderRadius: BorderRadius.circular(30),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.12),
-            blurRadius: 26,
-            offset: const Offset(0, 16),
-          ),
-        ],
+        color: const Color(0xFFECEEFF),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: KidsPalette.sage.withValues(alpha: 0.18)),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(28),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        padding: const EdgeInsets.all(16),
+        child: Row(
           children: [
-            Text(
-              problem?.unit ?? '오늘의 문제',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.labelLarge,
-            ),
-            const SizedBox(height: 18),
-            Expanded(
-              child: CustomPaint(
-                painter: _MiniChartPainter(),
-                child: const SizedBox.expand(),
+            const SizedBox(
+              width: 54,
+              height: 54,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: KidsPalette.sage,
+                  borderRadius: BorderRadius.all(Radius.circular(12)),
+                ),
+                child: Icon(Icons.functions_rounded, color: Colors.white),
               ),
             ),
-            const SizedBox(height: 18),
-            Text(
-              problem?.title ?? '추천 문제를 불러오는 중입니다.',
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    problem?.unit ?? '오늘의 문제',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.labelLarge,
                   ),
+                  const SizedBox(height: 4),
+                  Text(
+                    problem?.title ?? '추천 문제를 불러오는 중입니다.',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -560,135 +525,65 @@ class _ProblemPreviewCard extends StatelessWidget {
   }
 }
 
-class _StudentSilhouette extends StatelessWidget {
-  const _StudentSilhouette({required this.grade});
+class _ProgressStrip extends StatelessWidget {
+  const _ProgressStrip({
+    required this.value,
+    required this.title,
+    required this.caption,
+  });
 
-  final int grade;
+  final double value;
+  final String title;
+  final String caption;
 
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: const Color(0xFFBCB8AE).withValues(alpha: 0.42),
-        borderRadius: BorderRadius.circular(24),
+        color: KidsPalette.paper.withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: KidsPalette.line),
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 104,
-            height: 104,
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              color: Color(0xFFE9DED4),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+                Text(
+                  '${(value * 100).round()}%',
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        color: KidsPalette.sage,
+                      ),
+                ),
+              ],
             ),
-            child: const Icon(
-              Icons.face_rounded,
-              size: 66,
-              color: Color(0xFF6E625B),
+            const SizedBox(height: 10),
+            LinearProgressIndicator(
+              value: value,
+              minHeight: 8,
+              borderRadius: BorderRadius.circular(8),
+              backgroundColor: KidsPalette.butter,
+              color: KidsPalette.sage,
             ),
-          ),
-          const SizedBox(height: 24),
-          Container(
-            width: 150,
-            height: 124,
-            decoration: BoxDecoration(
-              color: const Color(0xFFB8C0D2),
-              borderRadius: BorderRadius.circular(24),
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              '$grade학년',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 22,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ProgressGem extends StatelessWidget {
-  const _ProgressGem({
-    required this.solved,
-    required this.target,
-    required this.compact,
-  });
-
-  final int solved;
-  final int target;
-  final bool compact;
-
-  @override
-  Widget build(BuildContext context) {
-    final ratio = target == 0 ? 0.0 : (solved / target).clamp(0.0, 1.0);
-    final size = compact ? 86.0 : 96.0;
-    return Transform.rotate(
-      angle: -0.78,
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          color: KidsPalette.sage,
-          borderRadius: BorderRadius.circular(compact ? 22 : 26),
-          boxShadow: [
-            BoxShadow(
-              color: KidsPalette.sage.withValues(alpha: 0.24),
-              blurRadius: 22,
-              offset: const Offset(0, 12),
+            const SizedBox(height: 10),
+            Text(
+              caption,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodySmall,
             ),
           ],
-        ),
-        alignment: Alignment.center,
-        child: Transform.rotate(
-          angle: 0.78,
-          child: Text(
-            '${(ratio * 100).round()}%',
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w900,
-              fontSize: 22,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _PreviewCaption extends StatelessWidget {
-  const _PreviewCaption({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 340),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.42),
-          borderRadius: BorderRadius.circular(18),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          child: Text(
-            text,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.right,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w900,
-              height: 1.22,
-            ),
-          ),
         ),
       ),
     );
@@ -716,13 +611,13 @@ class _UnitRail extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('단원별 학습', style: Theme.of(context).textTheme.titleLarge),
-        const SizedBox(height: 14),
+        const SizedBox(height: 12),
         SizedBox(
-          height: 176,
+          height: 152,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: units.length,
-            separatorBuilder: (context, index) => const SizedBox(width: 14),
+            separatorBuilder: (context, index) => const SizedBox(width: 12),
             itemBuilder: (context, index) {
               final unit = units[index];
               final count = unitGroups[unit]?.length ?? 0;
@@ -753,14 +648,14 @@ class _UnitTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 280,
+      width: 260,
       child: Card(
         margin: EdgeInsets.zero,
         child: InkWell(
-          borderRadius: BorderRadius.circular(28),
+          borderRadius: BorderRadius.circular(16),
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.all(22),
+            padding: const EdgeInsets.all(18),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -773,8 +668,10 @@ class _UnitTile extends StatelessWidget {
                 const Spacer(),
                 Row(
                   children: [
-                    Text('$count문제',
-                        style: Theme.of(context).textTheme.bodyLarge),
+                    Text(
+                      '$count문제',
+                      style: Theme.of(context).textTheme.bodyLarge,
+                    ),
                     const Spacer(),
                     const Icon(Icons.chevron_right_rounded),
                   ],
@@ -791,61 +688,23 @@ class _UnitTile extends StatelessWidget {
 class _PreviewGridPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.14)
-      ..strokeWidth = 1;
-    for (double x = 0; x < size.width; x += 42) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
-    }
-    for (double y = 0; y < size.height; y += 42) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
-    }
-  }
+    canvas.drawColor(const Color(0xFFF7F8FC), BlendMode.src);
 
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-class _MiniChartPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final axisPaint = Paint()
-      ..color = KidsPalette.ink
-      ..strokeWidth = 2;
     final gridPaint = Paint()
-      ..color = KidsPalette.line
+      ..color = KidsPalette.line.withValues(alpha: 0.55)
       ..strokeWidth = 1;
-    final pointPaint = Paint()..color = KidsPalette.sage;
-
-    for (double x = 0; x <= size.width; x += size.width / 5) {
+    for (double x = 24; x < size.width; x += 48) {
       canvas.drawLine(Offset(x, 0), Offset(x, size.height), gridPaint);
     }
-    for (double y = 0; y <= size.height; y += size.height / 4) {
+    for (double y = 24; y < size.height; y += 48) {
       canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
     }
 
-    canvas.drawLine(
-        Offset(0, size.height), Offset(size.width, size.height), axisPaint);
-    canvas.drawLine(const Offset(0, 0), Offset(0, size.height), axisPaint);
-
-    final points = [
-      Offset(size.width * 0.12, size.height * 0.70),
-      Offset(size.width * 0.28, size.height * 0.56),
-      Offset(size.width * 0.44, size.height * 0.38),
-    ];
-    for (final point in points) {
-      canvas.drawCircle(point, 6, pointPaint);
-    }
-
-    final guidePaint = Paint()
-      ..color = KidsPalette.sage.withValues(alpha: 0.35)
-      ..strokeWidth = 2
-      ..style = PaintingStyle.stroke;
-    canvas.drawLine(
-      Offset(0, size.height * 0.56),
-      Offset(size.width, size.height * 0.56),
-      guidePaint,
-    );
+    final accentPaint = Paint()
+      ..color = KidsPalette.warning.withValues(alpha: 0.16)
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(
+        Offset(size.width * 0.82, size.height * 0.24), 54, accentPaint);
   }
 
   @override
