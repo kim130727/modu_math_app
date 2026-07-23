@@ -66,7 +66,7 @@ class _ProblemListScreenState extends State<ProblemListScreen> {
               child: Padding(
                 padding: const EdgeInsets.all(24),
                 child: Text(
-                  '문제 목록을 불러오지 못했습니다.\n${snapshot.error}',
+                  '문제 목록을 불러오지 못했어요.\n${snapshot.error}',
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),
               ),
@@ -302,7 +302,7 @@ class _JourneyHeader extends StatelessWidget {
                   Text(unit, style: textTheme.titleLarge),
                   const SizedBox(height: 8),
                   Text(
-                    'AI 튜터와 $count개의 문제를 차례대로 풀어봅니다.',
+                    'Rule Tutor와 $count개의 문제를 차례대로 풀어봅니다.',
                     style: textTheme.bodyMedium?.copyWith(
                       color: colorScheme.onSurfaceVariant,
                     ),
@@ -350,7 +350,7 @@ class _JourneyStepTile extends StatelessWidget {
             ? Icons.check_circle
             : Icons.refresh;
     final label = !solved
-        ? '대기'
+        ? '풀기'
         : result!.isCorrect
             ? '완료'
             : '다시 풀기';
@@ -382,7 +382,7 @@ class _JourneyStepTile extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'AI 튜터와 함께 풀기',
+                      'Rule Tutor와 한 단계씩 풀기',
                       style: TextStyle(
                         color: colorScheme.onSurfaceVariant,
                         fontWeight: FontWeight.w600,
@@ -450,7 +450,7 @@ class _UnitCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    'AI 튜터로 시작',
+                    'Rule Tutor로 시작',
                     style: TextStyle(
                       color: colorScheme.onSurfaceVariant,
                       fontWeight: FontWeight.w700,
@@ -478,7 +478,9 @@ class _ProblemListData {
           problems: [],
           raw: {},
         ),
-        summary = const LearningProgressSummary(results: []);
+        summary = const LearningProgressSummary(
+          results: [],
+        );
 
   final ProblemManifest manifest;
   final LearningProgressSummary summary;

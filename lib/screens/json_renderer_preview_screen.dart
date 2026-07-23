@@ -52,7 +52,7 @@ class _JsonRendererPreviewScreenState extends State<JsonRendererPreviewScreen> {
   Future<ProblemJsonBundle> _loadInitialBundle() async {
     final prefixes = await prefixesFuture;
     if (prefixes.isEmpty) {
-      throw StateError('렌더링 가능한 3학년 문제 자산이 없습니다.');
+      throw StateError('렌더링 가능한 3학년 문제 자료가 없어요.');
     }
     selectedFilePrefix = prefixes.first;
     return widget.repository.loadProblemJsonBundle(selectedFilePrefix);
@@ -295,7 +295,7 @@ class _JsonRendererPreviewScreenState extends State<JsonRendererPreviewScreen> {
         tutorMessages.add(
           TutorMessage(
             role: TutorMessageRole.tutor,
-            text: 'AI 튜터의 응답을 받지 못했어요. 잠시 후 다시 시도해 주세요.',
+            text: '튜터 응답을 받지 못했어요. 잠시 후 다시 시도해 주세요.',
             replyType: TutorReplyType.retry,
             createdAt: DateTime.now(),
           ),

@@ -1,14 +1,14 @@
 import 'content_models.dart';
 
 enum ErrorCategory {
-  understandingTarget('understanding_target', '목표 문제 이해 부족'),
+  understandingTarget('understanding_target', '문제 목표 이해 부족'),
   understandingGiven('understanding_given', '주어진 조건 해석 오류'),
-  planningConcept('planning_concept', '선수/기본 개념 연결 오류'),
+  planningConcept('planning_concept', '개념 연결 오류'),
   planningOperation('planning_operation', '연산/해결 계획 선택 오류'),
   executionCalculation('execution_calculation', '계산 실수'),
-  executionRepresentation('execution_representation', '표현 및 수식 작성 오류'),
-  reviewCondition('review_condition', '조건 재확인 부족'),
-  reviewUnit('review_unit', '단위 및 최종 검산 오류'),
+  executionRepresentation('execution_representation', '표현 또는 식 작성 오류'),
+  reviewCondition('review_condition', '조건 확인 부족'),
+  reviewUnit('review_unit', '단위 또는 최종 검토 오류'),
   none('none', '오류 없음');
 
   const ErrorCategory(this.code, this.label);
@@ -138,9 +138,9 @@ class SkillMastery {
 
   String get masteryLevel {
     if (totalAttempted == 0) return '시작 전';
-    if (accuracy >= 0.8) return '숙달됨';
-    if (accuracy >= 0.5) return '학습 중';
-    return '보충 필요';
+    if (accuracy >= 0.8) return '잘하고 있어요';
+    if (accuracy >= 0.5) return '연습 중';
+    return '복습 필요';
   }
 }
 

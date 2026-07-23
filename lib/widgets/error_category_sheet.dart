@@ -90,7 +90,7 @@ class ErrorCategorySheet extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            '원인을 기록하면 다음에 AI 튜터가 맞춤 힌트를 준비할 수 있어요.',
+            '원인을 기록하면 다음 학습에서 Rule Tutor가 더 알맞은 힌트를 준비할 수 있어요.',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: KidsPalette.cocoaSoft,
                 ),
@@ -141,7 +141,8 @@ class ErrorCategorySheet extends StatelessWidget {
                             ],
                           ),
                         ),
-                        const Icon(Icons.arrow_forward_ios, size: 16, color: KidsPalette.cocoaSoft),
+                        const Icon(Icons.arrow_forward_ios,
+                            size: 16, color: KidsPalette.cocoaSoft),
                       ],
                     ),
                   ),
