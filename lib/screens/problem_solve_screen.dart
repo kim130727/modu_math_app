@@ -38,6 +38,7 @@ class _ProblemSolveScreenState extends State<ProblemSolveScreen> {
   bool tutorBusy = false;
   String? tutorProblemId;
   String? submittedAnswer;
+  String answerDraft = '';
   bool? isCorrect;
   int hintLevel = 0;
   int tutorStepIndex = 0;
@@ -85,13 +86,19 @@ class _ProblemSolveScreenState extends State<ProblemSolveScreen> {
           return LayoutBuilder(
             builder: (context, constraints) {
               final wide = constraints.maxWidth >= 960;
-              final problemViewer = _ProblemVisual(content: content);
+              final problemViewer = _ProblemVisual(
+                content: content,
+                answerDraft: answerDraft,
+                onAnswerChanged: _updateAnswerDraft,
+              );
               final tutorPanel = TutorChatPanel(
                 content: content,
                 messages: tutorMessages,
                 isBusy: tutorBusy,
+                answerDraft: answerDraft,
                 submittedAnswer: submittedAnswer,
                 isCorrect: isCorrect,
+                onAnswerChanged: _updateAnswerDraft,
                 onSubmit: (answer) => _submit(content, answer),
                 onSend: (message) => _sendTutorMessage(content, message),
                 onHint: () => _requestHint(content),
@@ -152,6 +159,7 @@ class _ProblemSolveScreenState extends State<ProblemSolveScreen> {
       hintLevelUsed: hintLevel,
     );
     setState(() {
+      answerDraft = answer;
       submittedAnswer = answer;
       isCorrect = correct;
       if (tutorMessages.isEmpty) {
@@ -181,6 +189,7 @@ class _ProblemSolveScreenState extends State<ProblemSolveScreen> {
   void _restartTutor(ProblemContent content) {
     setState(() {
       submittedAnswer = null;
+      answerDraft = '';
       isCorrect = null;
       tutorMessages.clear();
       tutorMessages.addAll(tutorService.startSession(content));
@@ -195,10 +204,18 @@ class _ProblemSolveScreenState extends State<ProblemSolveScreen> {
       tutorMessages.clear();
       tutorProblemId = null;
       submittedAnswer = null;
+      answerDraft = '';
       isCorrect = null;
       hintLevel = 0;
       tutorStepIndex = 0;
     });
+  }
+
+  void _updateAnswerDraft(String value) {
+    if (answerDraft == value) {
+      return;
+    }
+    setState(() => answerDraft = value);
   }
 
   Future<void> _sendTutorMessage(ProblemContent content, String message) async {
@@ -301,9 +318,15 @@ class _ProblemSolveScreenState extends State<ProblemSolveScreen> {
 }
 
 class _ProblemVisual extends StatelessWidget {
-  const _ProblemVisual({required this.content});
+  const _ProblemVisual({
+    required this.content,
+    required this.answerDraft,
+    required this.onAnswerChanged,
+  });
 
   final ProblemContent content;
+  final String answerDraft;
+  final ValueChanged<String> onAnswerChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -312,7 +335,11 @@ class _ProblemVisual extends StatelessWidget {
         margin: EdgeInsets.zero,
         child: Padding(
           padding: const EdgeInsets.all(12),
-          child: RendererJsonCanvas(renderer: content.renderer),
+          child: RendererJsonCanvas(
+            renderer: content.renderer,
+            inputValue: answerDraft,
+            onInputChanged: onAnswerChanged,
+          ),
         ),
       );
     }

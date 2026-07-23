@@ -35,6 +35,7 @@ class _JsonRendererPreviewScreenState extends State<JsonRendererPreviewScreen> {
   final List<TutorMessage> tutorMessages = [];
   String selectedFilePrefix = '';
   String? tutorProblemId;
+  String answerDraft = '';
   String? submittedAnswer;
   bool? isCorrect;
   bool tutorBusy = false;
@@ -107,8 +108,10 @@ class _JsonRendererPreviewScreenState extends State<JsonRendererPreviewScreen> {
                                 content: content,
                                 messages: tutorMessages,
                                 isBusy: tutorBusy,
+                                answerDraft: answerDraft,
                                 submittedAnswer: submittedAnswer,
                                 isCorrect: isCorrect,
+                                onAnswerChanged: _updateAnswerDraft,
                                 onSubmit: (answer) => _submit(content, answer),
                                 onSend: (message) =>
                                     _sendTutorMessage(content, message),
@@ -149,6 +152,7 @@ class _JsonRendererPreviewScreenState extends State<JsonRendererPreviewScreen> {
       tutorProblemId = null;
       tutorMessages.clear();
       submittedAnswer = null;
+      answerDraft = '';
       isCorrect = null;
       hintLevel = 0;
       tutorStepIndex = 0;
@@ -190,6 +194,7 @@ class _JsonRendererPreviewScreenState extends State<JsonRendererPreviewScreen> {
       tutorMessages.addAll(tutorService.startSession(content));
       tutorProblemId = content.summary.id;
       submittedAnswer = null;
+      answerDraft = '';
       isCorrect = null;
       hintLevel = 0;
       tutorStepIndex = 0;
@@ -201,6 +206,7 @@ class _JsonRendererPreviewScreenState extends State<JsonRendererPreviewScreen> {
       tutorMessages.clear();
       tutorProblemId = null;
       submittedAnswer = null;
+      answerDraft = '';
       isCorrect = null;
       hintLevel = 0;
       tutorStepIndex = 0;
@@ -216,6 +222,7 @@ class _JsonRendererPreviewScreenState extends State<JsonRendererPreviewScreen> {
       hintLevelUsed: hintLevel,
     );
     setState(() {
+      answerDraft = answer;
       submittedAnswer = answer;
       isCorrect = correct;
       if (tutorMessages.isEmpty) {
@@ -230,6 +237,13 @@ class _JsonRendererPreviewScreenState extends State<JsonRendererPreviewScreen> {
         answer: answer,
       ),
     );
+  }
+
+  void _updateAnswerDraft(String value) {
+    if (answerDraft == value) {
+      return;
+    }
+    setState(() => answerDraft = value);
   }
 
   Future<void> _sendTutorMessage(

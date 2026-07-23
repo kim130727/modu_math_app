@@ -45,4 +45,153 @@ void main() {
     expect(find.text('problem text'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('overlays input fields on empty square rects', (tester) async {
+    var value = '';
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 240,
+            height: 120,
+            child: RendererJsonCanvas(
+              inputValue: value,
+              onInputChanged: (next) => value = next,
+              renderer: const {
+                'view_box': {
+                  'width': 240,
+                  'height': 120,
+                  'background': '#FFFFFF',
+                },
+                'elements': [
+                  {
+                    'id': 'slot.answer.1.rect',
+                    'type': 'rect',
+                    'attributes': {
+                      'x': 20,
+                      'y': 30,
+                      'width': 40,
+                      'height': 40,
+                      'fill': 'none',
+                      'stroke': '#202124',
+                      'stroke-width': 2,
+                    },
+                  },
+                  {
+                    'id': 'slot.answer.2.rect',
+                    'type': 'rect',
+                    'attributes': {
+                      'x': 70,
+                      'y': 30,
+                      'width': 40,
+                      'height': 40,
+                      'fill': 'none',
+                      'stroke': '#202124',
+                      'stroke-width': 2,
+                    },
+                  },
+                ],
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byType(TextField), findsNWidgets(2));
+
+    await tester.enterText(find.byType(TextField).first, '8');
+    await tester.enterText(find.byType(TextField).last, '1');
+
+    expect(value, equals('81'));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('syncs only answer slots when carry slots are editable',
+      (tester) async {
+    var value = '';
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 260,
+            height: 180,
+            child: RendererJsonCanvas(
+              inputValue: value,
+              onInputChanged: (next) => value = next,
+              renderer: const {
+                'view_box': {
+                  'width': 260,
+                  'height': 180,
+                  'background': '#FFFFFF',
+                },
+                'elements': [
+                  {
+                    'id': 'slot.instruction.text',
+                    'type': 'text_box',
+                    'attributes': {
+                      'x': 10,
+                      'y': 10,
+                      'width': 200,
+                      'height': 40,
+                    },
+                    'source_ref': 'slot.instruction',
+                    'text': '□ 안에 알맞은 수를 써넣으시오.',
+                  },
+                  {
+                    'id': 'slot.carry_tens.text',
+                    'type': 'text_box',
+                    'attributes': {
+                      'x': 40,
+                      'y': 60,
+                      'width': 34,
+                      'height': 44,
+                    },
+                    'source_ref': 'slot.carry_tens',
+                    'text': '□',
+                  },
+                  {
+                    'id': 'slot.answer_tens.text',
+                    'type': 'text_box',
+                    'attributes': {
+                      'x': 40,
+                      'y': 115,
+                      'width': 34,
+                      'height': 44,
+                    },
+                    'source_ref': 'slot.answer_tens',
+                    'text': '□',
+                  },
+                  {
+                    'id': 'slot.answer_ones.text',
+                    'type': 'text_box',
+                    'attributes': {
+                      'x': 82,
+                      'y': 115,
+                      'width': 34,
+                      'height': 44,
+                    },
+                    'source_ref': 'slot.answer_ones',
+                    'text': '□',
+                  },
+                ],
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byType(TextField), findsNWidgets(3));
+
+    await tester.enterText(find.byType(TextField).at(0), '1');
+    await tester.enterText(find.byType(TextField).at(1), '8');
+    await tester.enterText(find.byType(TextField).at(2), '3');
+
+    expect(value, equals('83'));
+    expect(find.textContaining('알맞은 수'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 }

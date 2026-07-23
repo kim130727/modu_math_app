@@ -1,17 +1,53 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class RendererJsonCanvas extends StatelessWidget {
+class RendererJsonCanvas extends StatefulWidget {
   const RendererJsonCanvas({
     super.key,
     required this.renderer,
+    this.inputValue = '',
+    this.onInputChanged,
   });
 
   final Map<String, dynamic> renderer;
+  final String inputValue;
+  final ValueChanged<String>? onInputChanged;
+
+  @override
+  State<RendererJsonCanvas> createState() => _RendererJsonCanvasState();
+}
+
+class _RendererJsonCanvasState extends State<RendererJsonCanvas> {
+  final List<TextEditingController> inputControllers = [];
+  String inputSignature = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _syncInputControllers(force: true);
+  }
+
+  @override
+  void didUpdateWidget(covariant RendererJsonCanvas oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _syncInputControllers(
+      force: oldWidget.renderer != widget.renderer ||
+          oldWidget.inputValue != widget.inputValue,
+    );
+  }
+
+  @override
+  void dispose() {
+    for (final controller in inputControllers) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final viewBox = _mapAt(renderer, 'view_box');
+    final viewBox = _mapAt(widget.renderer, 'view_box');
     final width = _readDouble(viewBox['width']) ?? 928;
     final height = _readDouble(viewBox['height']) ?? 426;
     final background = _readColor(viewBox['background']) ?? Colors.white;
@@ -31,18 +67,22 @@ class RendererJsonCanvas extends StatelessWidget {
               child: LayoutBuilder(
                 builder: (context, canvasConstraints) {
                   final scale = canvasConstraints.maxWidth / width;
+                  final inputSlots = _inputSlots(widget.renderer);
+                  _ensureControllerCount(inputSlots.length);
+
                   return Stack(
                     clipBehavior: Clip.hardEdge,
                     children: [
                       Positioned.fill(
                         child: CustomPaint(
                           painter: RendererJsonPainter(
-                            renderer: renderer,
+                            renderer: widget.renderer,
                             logicalSize: Size(width, height),
                           ),
                         ),
                       ),
-                      ..._textBoxLayers(renderer, scale),
+                      ..._textBoxLayers(widget.renderer, scale),
+                      ..._inputLayers(inputSlots, scale),
                     ],
                   );
                 },
@@ -52,6 +92,112 @@ class RendererJsonCanvas extends StatelessWidget {
         );
       },
     );
+  }
+
+  List<Widget> _inputLayers(List<_InputSlot> slots, double scale) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return slots.indexed.map((entry) {
+      final index = entry.$1;
+      final slot = entry.$2;
+      final rect = slot.rect;
+      final fontSize = (rect.height * 0.72 * scale).clamp(18.0, 52.0);
+      return Positioned(
+        left: rect.left * scale,
+        top: rect.top * scale,
+        width: rect.width * scale,
+        height: rect.height * scale,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border.all(color: colorScheme.onSurface, width: 2 * scale),
+          ),
+          child: TextField(
+            controller: inputControllers[index],
+            textAlign: TextAlign.center,
+            textAlignVertical: TextAlignVertical.center,
+            keyboardType: TextInputType.number,
+            inputFormatters: [
+              LengthLimitingTextInputFormatter(1),
+            ],
+            style: GoogleFonts.notoSansKr(
+              color: colorScheme.onSurface,
+              fontSize: fontSize,
+              fontWeight: FontWeight.w800,
+              height: 1,
+            ),
+            decoration: const InputDecoration(
+              border: InputBorder.none,
+              counterText: '',
+              contentPadding: EdgeInsets.zero,
+              isCollapsed: true,
+            ),
+            onChanged: (value) {
+              if (value.length == 1 && index + 1 < inputControllers.length) {
+                FocusScope.of(context).nextFocus();
+              }
+              widget.onInputChanged?.call(_combinedInputValue());
+            },
+          ),
+        ),
+      );
+    }).toList(growable: false);
+  }
+
+  void _syncInputControllers({required bool force}) {
+    final slots = _inputSlots(widget.renderer);
+    final signature = slots.map((slot) => slot.signature).join('|');
+    if (!force && inputSignature == signature) {
+      return;
+    }
+    inputSignature = signature;
+    _ensureControllerCount(slots.length);
+    final chars = widget.inputValue.characters.toList();
+    for (var i = 0; i < inputControllers.length; i += 1) {
+      final value = _inputValueForController(slots, chars, i);
+      if (inputControllers[i].text != value) {
+        inputControllers[i].text = value;
+      }
+    }
+  }
+
+  void _ensureControllerCount(int count) {
+    while (inputControllers.length < count) {
+      inputControllers.add(TextEditingController());
+    }
+    while (inputControllers.length > count) {
+      inputControllers.removeLast().dispose();
+    }
+  }
+
+  String _combinedInputValue() {
+    final slots = _inputSlots(widget.renderer);
+    final answerIndexes = slots.indexed
+        .where((entry) => entry.$2.contributesToAnswer)
+        .map((entry) => entry.$1)
+        .toList();
+    final indexes = answerIndexes.isEmpty
+        ? List<int>.generate(inputControllers.length, (index) => index)
+        : answerIndexes;
+    return indexes.map((index) => inputControllers[index].text).join().trim();
+  }
+
+  String _inputValueForController(
+    List<_InputSlot> slots,
+    List<String> chars,
+    int controllerIndex,
+  ) {
+    final answerIndexes = slots.indexed
+        .where((entry) => entry.$2.contributesToAnswer)
+        .map((entry) => entry.$1)
+        .toList();
+    if (answerIndexes.isEmpty) {
+      return controllerIndex < chars.length ? chars[controllerIndex] : '';
+    }
+    final answerPosition = answerIndexes.indexOf(controllerIndex);
+    if (answerPosition < 0 || answerPosition >= chars.length) {
+      return '';
+    }
+    return chars[answerPosition];
   }
 }
 
@@ -247,6 +393,7 @@ List<Widget> _textBoxLayers(Map<String, dynamic> renderer, double scale) {
   return elements
       .whereType<Map<String, dynamic>>()
       .where((element) => element['type']?.toString() == 'text_box')
+      .where((element) => !_looksLikeInputTextBox(element))
       .map((element) {
     final attributes = _mapAt(element, 'attributes');
     final fontSize = _readDouble(attributes['font-size']) ?? 18;
@@ -289,6 +436,132 @@ List<Widget> _textBoxLayers(Map<String, dynamic> renderer, double scale) {
       ),
     );
   }).toList(growable: false);
+}
+
+List<_InputSlot> _inputSlots(Map<String, dynamic> renderer) {
+  final elements = renderer['elements'];
+  if (elements is! List) {
+    return const [];
+  }
+  final slots = <_InputSlot>[];
+  for (final element in elements.whereType<Map<String, dynamic>>()) {
+    final type = element['type']?.toString();
+    if (type == 'text_box' && _looksLikeInputTextBox(element)) {
+      final attributes = _mapAt(element, 'attributes');
+      final x = _readDouble(attributes['x']) ?? 0;
+      final y = _readDouble(attributes['y']) ?? 0;
+      final width = _readDouble(attributes['width']) ??
+          _readDouble(attributes['max_width']) ??
+          0;
+      final height = _readDouble(attributes['height']) ?? 0;
+      slots.add(
+        _InputSlot(
+          rect: Rect.fromLTWH(x, y, width, height),
+          id: element['id']?.toString() ?? '',
+          contributesToAnswer: _contributesToAnswer(element),
+        ),
+      );
+      continue;
+    }
+    if (type != 'rect') {
+      continue;
+    }
+    final attributes = _mapAt(element, 'attributes');
+    final rect = Rect.fromLTWH(
+      _readDouble(attributes['x']) ?? 0,
+      _readDouble(attributes['y']) ?? 0,
+      _readDouble(attributes['width']) ?? 0,
+      _readDouble(attributes['height']) ?? 0,
+    );
+    if (!_looksLikeInputRect(element, attributes, rect)) {
+      continue;
+    }
+    slots.add(
+      _InputSlot(
+        rect: rect,
+        id: element['id']?.toString() ?? '',
+        contributesToAnswer: _contributesToAnswer(element),
+      ),
+    );
+  }
+  slots.sort((a, b) {
+    final row = a.rect.top.compareTo(b.rect.top).abs() < 12
+        ? 0
+        : a.rect.top.compareTo(b.rect.top);
+    return row != 0 ? row : a.rect.left.compareTo(b.rect.left);
+  });
+  return slots;
+}
+
+bool _contributesToAnswer(Map<String, dynamic> element) {
+  final slotText = _slotIdentity(element);
+  return slotText.contains('answer') || slotText.contains('result');
+}
+
+bool _looksLikeInputTextBox(Map<String, dynamic> element) {
+  final text = element['text']?.toString().trim();
+  if (text != '□') {
+    return false;
+  }
+  final slotText = _slotIdentity(element);
+  if (slotText.contains('instruction')) {
+    return false;
+  }
+  return slotText.contains('answer') ||
+      slotText.contains('blank') ||
+      slotText.contains('carry') ||
+      slotText.contains('result');
+}
+
+bool _looksLikeInputRect(
+  Map<String, dynamic> element,
+  Map<String, dynamic> attributes,
+  Rect rect,
+) {
+  if (rect.width < 24 || rect.height < 24 || rect.width > 120) {
+    return false;
+  }
+  final ratio = rect.width / rect.height;
+  if (ratio < 0.65 || ratio > 1.35) {
+    return false;
+  }
+  final slotText = _slotIdentity(element);
+  if (slotText.contains('background') || slotText.contains('circle')) {
+    return false;
+  }
+  final stroke = attributes['stroke']?.toString().trim();
+  if (stroke == null || stroke.isEmpty || stroke == 'none') {
+    return false;
+  }
+  final fillText = attributes['fill']?.toString().trim().toLowerCase();
+  return fillText == null ||
+      fillText.isEmpty ||
+      fillText == 'none' ||
+      fillText == '#ffffff' ||
+      fillText == '#fff';
+}
+
+String _slotIdentity(Map<String, dynamic> element) {
+  final id = element['id']?.toString().toLowerCase() ?? '';
+  final sourceRef = element['source_ref']?.toString().toLowerCase() ?? '';
+  final slotId =
+      _mapAt(element, 'metadata')['layout_slot_id']?.toString().toLowerCase();
+  return '$id $sourceRef ${slotId ?? ''}';
+}
+
+class _InputSlot {
+  const _InputSlot({
+    required this.rect,
+    required this.id,
+    required this.contributesToAnswer,
+  });
+
+  final Rect rect;
+  final String id;
+  final bool contributesToAnswer;
+
+  String get signature =>
+      '$id:${rect.left},${rect.top},${rect.width},${rect.height}';
 }
 
 Map<String, dynamic> _mapAt(Map<String, dynamic> map, String key) {
@@ -350,7 +623,7 @@ Alignment _readAlignment({
 
 Color? _readColor(Object? value) {
   final text = value?.toString().trim();
-  if (text == null || text.isEmpty || text.isEmpty || text == 'none') {
+  if (text == null || text.isEmpty || text == 'none') {
     return null;
   }
   if (text.startsWith('#') && (text.length == 7 || text.length == 9)) {

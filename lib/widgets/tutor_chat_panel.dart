@@ -14,8 +14,10 @@ class TutorChatPanel extends StatefulWidget {
     required this.content,
     required this.messages,
     required this.isBusy,
+    required this.answerDraft,
     required this.submittedAnswer,
     required this.isCorrect,
+    required this.onAnswerChanged,
     required this.onSubmit,
     required this.onSend,
     required this.onHint,
@@ -29,8 +31,10 @@ class TutorChatPanel extends StatefulWidget {
   final ProblemContent content;
   final List<TutorMessage> messages;
   final bool isBusy;
+  final String answerDraft;
   final String? submittedAnswer;
   final bool? isCorrect;
+  final ValueChanged<String> onAnswerChanged;
   final ValueChanged<String> onSubmit;
   final ValueChanged<String> onSend;
   final VoidCallback onHint;
@@ -58,6 +62,7 @@ class _TutorChatPanelState extends State<TutorChatPanel> {
   @override
   void initState() {
     super.initState();
+    answerController.text = widget.answerDraft;
     _configureVoice();
   }
 
@@ -68,6 +73,12 @@ class _TutorChatPanelState extends State<TutorChatPanel> {
       selectedChoice = null;
       answerController.clear();
       chatController.clear();
+    } else if (oldWidget.answerDraft != widget.answerDraft &&
+        answerController.text != widget.answerDraft) {
+      answerController.text = widget.answerDraft;
+      answerController.selection = TextSelection.collapsed(
+        offset: answerController.text.length,
+      );
     }
     final newestMessage = widget.messages.lastOrNull;
     if (voiceEnabled &&
@@ -182,6 +193,7 @@ class _TutorChatPanelState extends State<TutorChatPanel> {
                   labelText: '정답 입력',
                   border: OutlineInputBorder(),
                 ),
+                onChanged: widget.onAnswerChanged,
                 onSubmitted: _submitAnswer,
               )
             else
@@ -402,6 +414,7 @@ class _TutorChatPanelState extends State<TutorChatPanel> {
     if (answer == null || answer.trim().isEmpty) {
       return;
     }
+    widget.onAnswerChanged(answer);
     widget.onSubmit(answer);
   }
 
@@ -410,6 +423,7 @@ class _TutorChatPanelState extends State<TutorChatPanel> {
     if (answer.isEmpty) {
       return;
     }
+    widget.onAnswerChanged(answer);
     widget.onSubmit(answer);
   }
 
