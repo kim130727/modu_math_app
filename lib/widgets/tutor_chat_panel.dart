@@ -116,7 +116,7 @@ class _TutorChatPanelState extends State<TutorChatPanel> {
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       Text(
-                        'solvable JSON 기반 단계별 대화',
+                        '풀이 규칙을 따라 한 단계씩 확인해요.',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               color: colorScheme.onSurfaceVariant,
                             ),
@@ -358,7 +358,7 @@ class _TutorChatPanelState extends State<TutorChatPanel> {
                     maxLines: 1,
                     textInputAction: TextInputAction.send,
                     decoration: const InputDecoration(
-                      labelText: '직접 입력하거나 선택지를 눌러 보세요',
+                      labelText: '궁금한 점을 직접 입력하거나 보기를 눌러 보세요.',
                       border: OutlineInputBorder(),
                     ),
                     onSubmitted: _send,
@@ -366,7 +366,7 @@ class _TutorChatPanelState extends State<TutorChatPanel> {
                 ),
                 const SizedBox(width: 10),
                 IconButton.filledTonal(
-                  tooltip: isListening ? '듣기 중지' : '음성으로 말하기',
+                  tooltip: isListening ? '듣는 중지' : '음성으로 말하기',
                   onPressed:
                       widget.isBusy || !tutorActive ? null : _toggleListening,
                   icon: Icon(isListening ? Icons.mic : Icons.mic_none),
@@ -454,7 +454,7 @@ class _TutorChatPanelState extends State<TutorChatPanel> {
       await tts.stop();
       await tts.speak(text);
     } catch (_) {
-      _showVoiceMessage('브라우저 음성 합성이 차단되었어요. 화면을 한 번 누른 뒤 다시 시도해 주세요.');
+      _showVoiceMessage('브라우저에서 음성 읽기를 사용할 수 없어요.');
     }
   }
 
@@ -566,10 +566,7 @@ class _AnimatedTutorAvatarState extends State<_AnimatedTutorAvatar>
         final tilt = widget.isBusy ? wave * 0.12 : wave * 0.06;
         return Transform.translate(
           offset: Offset(0, bounce),
-          child: Transform.rotate(
-            angle: tilt,
-            child: child,
-          ),
+          child: Transform.rotate(angle: tilt, child: child),
         );
       },
       child: SizedBox(
@@ -641,10 +638,10 @@ class _TutorActivityStrip extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final text = isBusy
-        ? '생각하고 있어요'
+        ? '생각하고 있어요.'
         : tutorActive
             ? latestText
-            : '시작하면 풀이 대화가 여기에 나타나요.';
+            : '시작하면 첫 번째 질문이 여기에 보여요.';
     return DecoratedBox(
       decoration: BoxDecoration(
         color: colorScheme.secondaryContainer.withValues(alpha: 0.42),

@@ -19,8 +19,8 @@ class RuleTutorService extends AiTutorService {
     if (content.solvable.isEmpty) {
       return [
         _tutor(
-          '이 문제에는 solvable JSON이 아직 없어요.\n'
-          '풀이 단계를 만든 뒤 다시 시작해 주세요.',
+          '이 문제에는 아직 풀이 규칙 데이터가 없어요.\n'
+          '다른 문제를 먼저 풀어 보거나 잠시 후 다시 시도해 주세요.',
           TutorReplyType.retry,
         ),
       ];
@@ -28,7 +28,7 @@ class RuleTutorService extends AiTutorService {
     if (steps.isEmpty) {
       return [
         _tutor(
-          'solvable JSON은 있지만 풀이 단계가 비어 있어요.\n'
+          '풀이 데이터는 있지만 단계가 비어 있어요.\n'
           'steps 또는 plan이 있으면 단계별 튜터를 시작할 수 있어요.',
           TutorReplyType.retry,
         ),
@@ -45,12 +45,12 @@ class RuleTutorService extends AiTutorService {
   }) async {
     final steps = _tutorSteps(content);
     final index = _lastRuleStepIndex(messages) ?? 0;
-    final step = steps[index.clamp(0, steps.length - 1)];
+    final safeIndex = index.clamp(0, steps.length - 1);
     return _ruleResponse(
       content,
       steps,
-      index,
-      _confusionReply(content, step, index),
+      safeIndex,
+      _confusionReply(content, steps[safeIndex], safeIndex),
     );
   }
 
@@ -80,18 +80,19 @@ class RuleTutorService extends AiTutorService {
   }) async {
     final steps = _tutorSteps(content);
     if (steps.isEmpty) {
-      return _tutor('풀이 단계가 아직 없어요.', TutorReplyType.retry);
+      return _tutor('아직 안내할 풀이 단계가 없어요.', TutorReplyType.retry);
     }
 
     final cleanMessage = message.trim();
     final waitingIndex = _lastRuleStepIndex(messages) ?? 0;
-    final step = steps[waitingIndex.clamp(0, steps.length - 1)];
+    final safeIndex = waitingIndex.clamp(0, steps.length - 1);
+    final step = steps[safeIndex];
 
     if (_wantsRestart(cleanMessage)) {
       return _ruleResponse(content, steps, 0, _ruleIntro(content, steps));
     }
     if (_asksForNext(cleanMessage)) {
-      final next = (waitingIndex + 1).clamp(0, steps.length - 1);
+      final next = (safeIndex + 1).clamp(0, steps.length - 1);
       return _ruleResponse(
         content,
         steps,
@@ -103,12 +104,12 @@ class RuleTutorService extends AiTutorService {
       return _ruleResponse(
         content,
         steps,
-        waitingIndex,
-        _confusionReply(content, step, waitingIndex),
+        safeIndex,
+        _confusionReply(content, step, safeIndex),
       );
     }
     if (_answerMatchesStep(cleanMessage, step)) {
-      final next = waitingIndex + 1;
+      final next = safeIndex + 1;
       if (next >= steps.length) {
         return _tutor(_complete(content), TutorReplyType.correct);
       }
@@ -116,18 +117,18 @@ class RuleTutorService extends AiTutorService {
         content,
         steps,
         next,
-        _renderRuleStep(content, steps, next, prefix: '좋아요, 맞았어요.'),
+        _renderRuleStep(content, steps, next, prefix: '좋아요. 맞게 찾았어요.'),
       );
     }
 
-    final hint = _stepExpectedHint(content, step, waitingIndex);
+    final hint = _stepExpectedHint(content, step, safeIndex);
     return _ruleResponse(
       content,
       steps,
-      waitingIndex,
+      safeIndex,
       '조금 다르게 본 것 같아요.\n'
-      '${waitingIndex + 1}단계: ${step.prompt}\n'
-      '${hint.isEmpty ? '이 단계에서 찾은 값을 다시 입력해 볼까요?' : '$hint 다시 입력해 볼까요?'}',
+      '${safeIndex + 1}단계: ${step.prompt}\n'
+      '${hint.isEmpty ? '이 단계에서 확인해야 하는 값을 다시 입력해 볼까요?' : '$hint 다시 입력해 볼까요?'}',
     );
   }
 
@@ -140,7 +141,7 @@ class RuleTutorService extends AiTutorService {
     if (isSameAnswer(answer, content.correctAnswer)) {
       return _tutor(
         '좋아요. 최종 답이 맞아요.\n'
-        '풀이 단계와도 잘 이어졌어요.',
+        '풀이 단계도 차근차근 잘 이어졌어요.',
         TutorReplyType.correct,
       );
     }
@@ -171,8 +172,8 @@ class RuleTutorService extends AiTutorService {
       final highlighted =
           _givenValue(content, 'obj.highlighted_value')?.toString();
       final lead = multiple != null && highlighted != null
-          ? '$multiple에서 색칠한 부분 $highlighted이 어떤 보기와 같은지 찾는 문제예요.'
-          : 'Rule Tutor로 자리값을 보면서 풀어 볼게요.';
+          ? '$multiple에서 표시된 $highlighted의 실제 값을 찾아보는 문제예요.'
+          : '자리값을 보면서 같은 값을 만드는 식을 찾아볼게요.';
       return _renderRuleStep(content, steps, 0, prefix: lead);
     }
 
@@ -199,13 +200,12 @@ class RuleTutorService extends AiTutorService {
     }
 
     final step = steps[index];
+    final hint = _stepExpectedHint(content, step, index);
     final lines = <String>[
       ...prefix.split('\n').where((line) => line.trim().isNotEmpty),
       '${index + 1}단계: ${step.prompt}',
       if (step.explanation.isNotEmpty) step.explanation,
-      _stepExpectedHint(content, step, index).isEmpty
-          ? '이 단계에서 알 수 있는 값을 입력해 보세요.'
-          : _stepExpectedHint(content, step, index),
+      hint.isEmpty ? '이 단계에서 필요한 값을 입력해 보세요.' : hint,
     ];
     return lines.take(4).join('\n');
   }
@@ -226,20 +226,20 @@ class RuleTutorService extends AiTutorService {
     if (!hasHighlighted) {
       lines
         ..add('${index + 1}단계: ${step.prompt}')
-        ..add('색칠된 부분의 자리값을 보고 같은 곱셈식을 고르면 돼요.')
-        ..add('아래 보기 중 알맞은 식을 선택해 보세요.');
+        ..add('표시된 부분의 자리값을 보고 같은 곱셈식을 고르면 돼요.')
+        ..add('아래 보기 중 같은 값을 만드는 식을 선택해 보세요.');
       return lines.take(4).join('\n');
     }
 
     if (index == 0) {
       lines
-        ..add('1단계: 먼저 869의 6이 얼마를 뜻하는지 봐요.')
-        ..add('6은 십의 자리라서 6이 아니라 60을 뜻해요.')
-        ..add('그래서 색칠한 부분은 몇에 4를 곱한 걸까요?');
+        ..add('1단계: 먼저 표시된 숫자가 얼마를 뜻하는지 봐요.')
+        ..add('예를 들어 869에서 6은 십의 자리라서 60을 뜻해요.')
+        ..add('그럼 표시된 부분은 무엇에 4를 곱한 걸까요?');
     } else if (index == 1) {
       lines
         ..add('2단계: ${step.prompt}')
-        ..add('이제 60에 4를 곱해 색칠한 부분의 값을 확인해요.')
+        ..add('이제 60 × 4를 계산해 표시된 부분의 값을 확인해요.')
         ..add('60 × 4는 얼마일까요?');
     } else {
       final choices = _givenValue(content, 'obj.choice_set');
@@ -247,7 +247,7 @@ class RuleTutorService extends AiTutorService {
       if (choices is List) {
         lines.add('보기: ${choices.join(', ')}');
       }
-      lines.add('240과 같은 값을 만드는 보기를 골라 입력해 보세요.');
+      lines.add('같은 값을 만드는 보기를 골라 입력해 보세요.');
     }
     return lines.take(4).join('\n');
   }
@@ -255,25 +255,25 @@ class RuleTutorService extends AiTutorService {
   String _confusionReply(ProblemContent content, _RuleStep step, int index) {
     if (_isPlaceValueMatching(content)) {
       if (index == 0) {
-        return '좋아요, 다시 쉽게 볼게요.\n'
-            '869에서 6은 오른쪽에서 둘째 자리, 즉 십의 자리에 있어요.\n'
-            '그래서 6은 6개가 아니라 60을 뜻해요.\n'
-            '그럼 색칠한 부분은 몇에 4를 곱한 걸까요?';
+        return '좋아요. 다시 천천히 볼게요.\n'
+            '숫자는 어느 자리에 있는지에 따라 값이 달라져요.\n'
+            '표시된 숫자가 십의 자리에 있으면 10배로 생각해요.\n'
+            '그 값에 몇을 곱해야 하는지 찾아볼까요?';
       }
       if (index == 1) {
-        return '앞에서 색칠된 수가 60이라는 걸 확인했어요.\n'
-            '이제 그 부분만 보면 60 × 4예요.\n'
-            '60을 4번 더하면 얼마일까요?';
+        return '앞에서 표시된 부분의 값을 확인했어요.\n'
+            '이제 그 값에 곱하는 수만 계산하면 돼요.\n'
+            '60 × 4를 다시 계산해 볼까요?';
       }
       return '이제 새 계산을 하는 단계가 아니에요.\n'
-          '앞에서 60 × 4 = 240을 확인했어요.\n'
-          '보기 중에서 240과 같은 곱셈식을 찾아보세요.';
+          '앞에서 찾은 값과 같은 보기를 찾으면 돼요.\n'
+          '보기 중 값이 같은 식을 골라보세요.';
     }
 
     final hint = _stepExpectedHint(content, step, index);
-    return '좋아요, 이 단계만 다시 볼게요.\n'
+    return '좋아요. 이 단계만 다시 볼게요.\n'
         '${index + 1}단계: ${step.prompt}\n'
-        '${hint.isEmpty ? '문제에서 확인할 수 있는 값을 하나만 찾아보세요.' : hint}';
+        '${hint.isEmpty ? '문제에서 확인해야 하는 값을 하나만 찾아보세요.' : hint}';
   }
 
   String _complete(ProblemContent content) {
@@ -281,10 +281,10 @@ class RuleTutorService extends AiTutorService {
     if (answer.isNotEmpty) {
       return '좋아요. 풀이 단계가 모두 끝났어요.\n'
           '최종 답은 $answer입니다.\n'
-          '이제 보기나 답칸에 맞게 표시하면 돼요.';
+          '이제 답칸에 맞게 정리해 보세요.';
     }
     return '좋아요. 풀이 단계가 모두 끝났어요.\n'
-        '이제 문제의 답칸이나 보기에 맞게 정리해 보세요.';
+        '이제 문제의 답이나 보기를 맞게 정리해 보세요.';
   }
 
   List<_RuleStep> _tutorSteps(ProblemContent content) {
@@ -303,7 +303,7 @@ class RuleTutorService extends AiTutorService {
       final index = entry.$1 + 1;
       final raw = entry.$2;
       if (raw is String) {
-        return _RuleStep(prompt: raw.trim(), expected: '');
+        return _RuleStep(prompt: _cleanPrompt(raw), expected: '');
       }
       if (raw is Map<String, dynamic>) {
         final prompt = _firstString(
@@ -326,9 +326,10 @@ class RuleTutorService extends AiTutorService {
                 ? _studentExpectedAnswer(raw['expected'])
                 : '';
         return _RuleStep(
-          prompt: prompt.isEmpty ? '$index번째 풀이 단계를 확인해요.' : prompt,
+          prompt:
+              prompt.isEmpty ? '$index번째 풀이 단계를 확인해요.' : _cleanPrompt(prompt),
           expected: expected,
-          explanation: explanation,
+          explanation: _cleanPrompt(explanation),
         );
       }
       return _RuleStep(prompt: '$index번째 풀이 단계를 확인해요.', expected: '');
@@ -341,7 +342,7 @@ class RuleTutorService extends AiTutorService {
       if (target != null && target.trim().isNotEmpty) {
         return [
           _RuleStep(
-            prompt: '색칠된 부분이 실제로 어떤 곱셈식인지 보기에서 골라요.',
+            prompt: '표시된 부분이 실제로 어떤 곱셈식인지 보기에서 골라요.',
             expected: target.trim(),
             choices: _placeValueExpressionChoices(target.trim()),
           ),
@@ -352,7 +353,10 @@ class RuleTutorService extends AiTutorService {
     final method = (content.solvable['method'] ?? '').toString().toLowerCase();
     final type =
         (content.solvable['problem_type'] ?? '').toString().toLowerCase();
-    if (!method.contains('compare') && !type.contains('비교')) {
+    if (!method.contains('compare') &&
+        !method.contains('비교') &&
+        !type.contains('compare') &&
+        !type.contains('비교')) {
       return const [];
     }
 
@@ -416,7 +420,8 @@ class RuleTutorService extends AiTutorService {
       final choiceSet = _givenValue(content, 'obj.choice_set');
       if (choiceSet is List) {
         return _uniqueChoices(
-            choiceSet.map((value) => value.toString()).toList());
+          choiceSet.map((value) => value.toString()).toList(),
+        );
       }
       return _uniqueChoices([expected]);
     }
@@ -488,7 +493,8 @@ bool _isPlaceValueMatching(ProblemContent content) {
         : null,
   ].whereType<Object>().join(' ').toLowerCase();
   return problemType.contains('place_value') ||
-      problemType.contains('matching_expression');
+      problemType.contains('matching_expression') ||
+      problemType.contains('자리값');
 }
 
 Object? _givenValue(ProblemContent content, String ref) {
@@ -535,17 +541,17 @@ String _stepExpectedHint(ProblemContent content, _RuleStep step, int index) {
   }
   if (_isPlaceValueMatching(content)) {
     if (index == 0) {
-      return '6은 십의 자리에 있으니 60이라고 볼 수 있어요.';
+      return '표시된 숫자의 자리가 어떤 값인지 먼저 확인해요.';
     }
     if (index == 1) {
-      return '60을 네 번 더하면 얼마인지 계산해 보세요.';
+      return '찾은 값에 몇을 곱해야 하는지 계산해 보세요.';
     }
-    return '보기 중 240과 같은 값을 만드는 곱셈식을 찾아보세요.';
+    return '보기 중 앞에서 찾은 값과 같은 식을 찾아보세요.';
   }
   if (_looksNumber(expected)) {
     return '계산한 수를 입력해 보세요.';
   }
-  return '이 단계에서 찾은 식이나 값을 입력해 보세요.';
+  return '이 단계에서 찾은 말이나 값을 입력해 보세요.';
 }
 
 int? _lastRuleStepIndex(List<TutorMessage> messages) {
@@ -601,7 +607,7 @@ bool _asksForNext(String message) {
 
 bool _isConfused(String message) {
   final value = message.replaceAll(' ', '').toLowerCase();
-  return ['모르', '이해', '무슨말', '헷갈', '어려', '왜', '설명', 'help', 'confus']
+  return ['모르', '이해', '무슨말', '헷갈', '어려', '힌트', '설명', 'help', 'confus']
       .any(value.contains);
 }
 
@@ -631,9 +637,11 @@ List<String> _comparisonExpressions(ProblemContent content) {
 num? _evaluateArithmetic(String expression) {
   final text = expression
       .replaceAll('×', '*')
+      .replaceAll('횞', '*')
       .replaceAll('x', '*')
       .replaceAll('X', '*')
       .replaceAll('÷', '/')
+      .replaceAll('첨', '/')
       .replaceAll(' ', '');
   if (!RegExp(r'^[\d+\-*/().]+$').hasMatch(text)) {
     return null;
@@ -694,7 +702,7 @@ num? _evaluateArithmetic(String expression) {
 
 List<String> _placeValueExpressionChoices(String expression) {
   final match =
-      RegExp(r'^\s*(\d+)\s*[×xX*]\s*(\d+)\s*$').firstMatch(expression);
+      RegExp(r'^\s*(\d+)\s*[×횞xX*]\s*(\d+)\s*$').firstMatch(expression);
   if (match == null) {
     return _uniqueChoices([expression]);
   }
@@ -738,4 +746,20 @@ List<String> _uniqueChoices(List<String> values) {
 
 bool _looksNumber(String value) {
   return RegExp(r'^-?\d+(?:\.\d+)?$').hasMatch(value.trim());
+}
+
+String _cleanPrompt(String value) {
+  final text = sanitizeTutorText(value);
+  if (_looksBrokenKorean(text)) {
+    return '\uBB38\uC81C\uC5D0\uC11C \uD544\uC694\uD55C \uAC12\uC744 \uD655\uC778\uD574\uC694.';
+  }
+  return text;
+}
+
+bool _looksBrokenKorean(String value) {
+  if (value.isEmpty) {
+    return false;
+  }
+  return RegExp(r'[\u3400-\u9FFF\uFFFD]').hasMatch(value) ||
+      value.contains('??');
 }

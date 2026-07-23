@@ -5,14 +5,15 @@ import 'package:modu_math_app/services/rule_tutor_service.dart';
 
 void main() {
   group('RuleTutorService', () {
-    test('uses solvable v1.2 count values as expected step answers', () async {
+    test('uses solvable count values as expected step answers', () async {
       const service = RuleTutorService();
       final content = _additionContent();
 
       final messages = service.startSession(content);
 
       expect(messages.single.replyType, equals(TutorReplyType.question));
-      expect(messages.single.text, contains('두 가족이 캔 고구마 수'));
+      expect(messages.single.text, contains('Rule Tutor'));
+      expect(messages.single.text, contains('두 수를 모두 더해요.'));
       expect(messages.single.choices, contains('507'));
 
       final reply = await service.respondToStudent(
@@ -34,16 +35,16 @@ ProblemContent _additionContent() {
       id: 'P3_1_01_00040_00469',
       grade: 3,
       subject: 'math',
-      unit: '1학기 1. 세 자리 수의 덧셈',
+      unit: '1학기 1. 덧셈과 뺄셈',
       type: 'numeric_answer_addition_word_problem',
-      title: '두 가족이 캔 고구마의 수',
+      title: '고구마 수 구하기',
       path: '',
       raw: {},
     ),
     svg: '<svg></svg>',
     semantic: {
       'metadata': {
-        'question': '259개와 248개를 모두 더하면 몇 개입니까?',
+        'question': '259개와 248개를 모두 더하면 몇 개인가요?',
       },
       'answer': {
         'value': 507,
@@ -51,21 +52,16 @@ ProblemContent _additionContent() {
       },
     },
     solvable: {
-      'method': '두 가족이 캔 고구마 수를 덧셈으로 구한다.',
-      'plan': [
-        '상현이네 가족이 캔 고구마 수를 확인한다.',
-        '용진이네 가족이 캔 고구마 수를 확인한다.',
-        '두 수를 더하여 전체 고구마 수를 구한다.',
-      ],
+      'method': '두 수를 덧셈으로 구한다',
       'steps': [
         {
           'id': 'step.add_counts',
-          'goal': '두 가족이 캔 고구마 수를 모두 구합니다.',
+          'goal': '두 수를 모두 더해요.',
           'expr': '259 + 248',
           'value': {
             'count': 507,
             'unit': '개',
-            'ref': 'quantity.total_sweet_potatoes',
+            'ref': 'quantity.total',
           },
           'explanation': '259와 248을 더합니다.',
         },

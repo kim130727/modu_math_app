@@ -112,16 +112,11 @@ class _ProblemSolveScreenState extends State<ProblemSolveScreen> {
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            Expanded(
-                              flex: 5,
-                              child: problemViewer,
-                            ),
+                            Expanded(flex: 5, child: problemViewer),
                             const SizedBox(width: 20),
                             Expanded(
                               flex: 4,
-                              child: ListView(
-                                children: [tutorPanel],
-                              ),
+                              child: ListView(children: [tutorPanel]),
                             ),
                           ],
                         ),
@@ -266,7 +261,7 @@ class _ProblemSolveScreenState extends State<ProblemSolveScreen> {
         tutorMessages.add(
           TutorMessage(
             role: TutorMessageRole.tutor,
-            text: 'AI 튜터 응답을 가져오지 못했어요. 잠시 뒤 다시 시도해 주세요.',
+            text: '튜터 응답을 가져오지 못했어요. 잠시 뒤 다시 시도해 주세요.',
             replyType: TutorReplyType.retry,
             createdAt: DateTime.now(),
           ),
@@ -329,7 +324,7 @@ class _ProblemVisual extends StatelessWidget {
       child: Center(
         child: Padding(
           padding: EdgeInsets.all(24),
-          child: Text('이 문제는 아직 렌더링 자료가 없습니다.'),
+          child: Text('이 문제는 아직 화면 자료가 없어요.'),
         ),
       ),
     );
@@ -375,13 +370,13 @@ class _ProblemLoadError extends StatelessWidget {
                   ),
                   const SizedBox(height: 14),
                   Text(
-                    '이 문제 자료를 불러오지 못했어요',
+                    '문제 자료를 불러오지 못했어요',
                     textAlign: TextAlign.center,
                     style: textTheme.titleMedium,
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '다른 문제를 이어서 풀 수 있어요.',
+                    '다시 시도하거나 다음 문제로 넘어갈 수 있어요.',
                     textAlign: TextAlign.center,
                     style: textTheme.bodyMedium?.copyWith(
                       color: colorScheme.onSurfaceVariant,
