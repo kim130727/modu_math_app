@@ -41,7 +41,6 @@ class _ProblemSolveScreenState extends State<ProblemSolveScreen> {
   bool? isCorrect;
   int hintLevel = 0;
   int tutorStepIndex = 0;
-  TutorMode tutorMode = TutorMode.rule;
 
   @override
   void initState() {
@@ -89,14 +88,10 @@ class _ProblemSolveScreenState extends State<ProblemSolveScreen> {
               final problemViewer = _ProblemVisual(content: content);
               final tutorPanel = TutorChatPanel(
                 content: content,
-                mode: tutorMode,
-                openAiConfigured: _openAiConfigured,
-                openAiModel: _openAiModel,
                 messages: tutorMessages,
                 isBusy: tutorBusy,
                 submittedAnswer: submittedAnswer,
                 isCorrect: isCorrect,
-                onModeChanged: (mode) => _changeTutorMode(content, mode),
                 onSubmit: (answer) => _submit(content, answer),
                 onSend: (message) => _sendTutorMessage(content, message),
                 onHint: () => _requestHint(content),
@@ -186,21 +181,6 @@ class _ProblemSolveScreenState extends State<ProblemSolveScreen> {
     tutorMessages.clear();
     hintLevel = 0;
     tutorStepIndex = 0;
-  }
-
-  void _changeTutorMode(ProblemContent content, TutorMode mode) {
-    setState(() {
-      tutorMode = mode;
-      tutorService = _createTutorService(mode);
-      tutorProblemId = null;
-      submittedAnswer = null;
-      isCorrect = null;
-      tutorMessages.clear();
-      tutorMessages.addAll(tutorService.startSession(content));
-      tutorProblemId = content.summary.id;
-      hintLevel = 0;
-      tutorStepIndex = 0;
-    });
   }
 
   void _restartTutor(ProblemContent content) {
@@ -296,17 +276,8 @@ class _ProblemSolveScreenState extends State<ProblemSolveScreen> {
     }
   }
 
-  AiTutorService _createTutorService([TutorMode? overrideMode]) {
-    tutorMode = TutorMode.rule;
+  AiTutorService _createTutorService() {
     return const RuleTutorService();
-  }
-
-  String get _openAiModel {
-    return '';
-  }
-
-  bool get _openAiConfigured {
-    return false;
   }
 
   bool get _hasNextProblem {

@@ -4,7 +4,7 @@ class AppEnvironment {
   const AppEnvironment._();
 
   static String get aiTutorMode {
-    return _envValue('AI_TUTOR_MODE', fallback: 'rule').toLowerCase().trim();
+    return 'rule';
   }
 
   static String get backendBaseUrl {
@@ -13,19 +13,6 @@ class AppEnvironment {
 
   static String? get backendSessionToken {
     return _optionalEnvValue('BACKEND_SESSION_TOKEN');
-  }
-
-  static String get openAiApiKey {
-    return _envValue('OPENAI_API_KEY').trim();
-  }
-
-  static String get openAiModel {
-    return _optionalEnvValue('OPENAI_MODEL') ?? 'gpt-5.4-nano';
-  }
-
-  static bool get openAiConfigured {
-    final key = openAiApiKey;
-    return key.isNotEmpty && key != 'sk-your-api-key';
   }
 
   static String _envValue(String key, {String fallback = ''}) {

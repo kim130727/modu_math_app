@@ -15,7 +15,6 @@ enum TutorMode {
   rule,
   mock,
   backend,
-  openai,
 }
 
 class TutorMessage {

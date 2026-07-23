@@ -40,7 +40,6 @@ class _JsonRendererPreviewScreenState extends State<JsonRendererPreviewScreen> {
   bool tutorBusy = false;
   int hintLevel = 0;
   int tutorStepIndex = 0;
-  TutorMode tutorMode = TutorMode.rule;
 
   @override
   void initState() {
@@ -106,15 +105,10 @@ class _JsonRendererPreviewScreenState extends State<JsonRendererPreviewScreen> {
                               tutorPanel: TutorChatPanel(
                                 key: ValueKey(bundle.filePrefix),
                                 content: content,
-                                mode: tutorMode,
-                                openAiConfigured: _openAiConfigured,
-                                openAiModel: _openAiModel,
                                 messages: tutorMessages,
                                 isBusy: tutorBusy,
                                 submittedAnswer: submittedAnswer,
                                 isCorrect: isCorrect,
-                                onModeChanged: (mode) =>
-                                    _changeTutorMode(content, mode),
                                 onSubmit: (answer) => _submit(content, answer),
                                 onSend: (message) =>
                                     _sendTutorMessage(content, message),
@@ -188,20 +182,6 @@ class _JsonRendererPreviewScreenState extends State<JsonRendererPreviewScreen> {
     }
     tutorProblemId = content.summary.id;
     tutorMessages.clear();
-  }
-
-  void _changeTutorMode(ProblemContent content, TutorMode mode) {
-    setState(() {
-      tutorMode = mode;
-      tutorService = _createTutorService(mode);
-      tutorMessages.clear();
-      tutorMessages.addAll(tutorService.startSession(content));
-      tutorProblemId = content.summary.id;
-      submittedAnswer = null;
-      isCorrect = null;
-      hintLevel = 0;
-      tutorStepIndex = 0;
-    });
   }
 
   void _restartTutor(ProblemContent content) {
@@ -325,17 +305,8 @@ class _JsonRendererPreviewScreenState extends State<JsonRendererPreviewScreen> {
     }
   }
 
-  AiTutorService _createTutorService([TutorMode? overrideMode]) {
-    tutorMode = TutorMode.rule;
+  AiTutorService _createTutorService() {
     return const RuleTutorService();
-  }
-
-  String get _openAiModel {
-    return '';
-  }
-
-  bool get _openAiConfigured {
-    return false;
   }
 }
 

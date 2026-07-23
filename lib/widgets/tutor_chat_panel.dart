@@ -12,15 +12,10 @@ class TutorChatPanel extends StatefulWidget {
   const TutorChatPanel({
     super.key,
     required this.content,
-    required this.mode,
-    required this.openAiConfigured,
-    required this.openAiModel,
-    this.allowOpenAiMode = false,
     required this.messages,
     required this.isBusy,
     required this.submittedAnswer,
     required this.isCorrect,
-    required this.onModeChanged,
     required this.onSubmit,
     required this.onSend,
     required this.onHint,
@@ -32,15 +27,10 @@ class TutorChatPanel extends StatefulWidget {
   });
 
   final ProblemContent content;
-  final TutorMode mode;
-  final bool openAiConfigured;
-  final String openAiModel;
-  final bool allowOpenAiMode;
   final List<TutorMessage> messages;
   final bool isBusy;
   final String? submittedAnswer;
   final bool? isCorrect;
-  final ValueChanged<TutorMode> onModeChanged;
   final ValueChanged<String> onSubmit;
   final ValueChanged<String> onSend;
   final VoidCallback onHint;
