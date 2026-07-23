@@ -3,11 +3,8 @@ import 'package:flutter/material.dart';
 import '../models/content_models.dart';
 import '../models/tutor_models.dart';
 import '../services/ai_tutor_service.dart';
-import '../services/app_environment.dart';
-import '../services/backend_tutor_service.dart';
 import '../services/content_repository.dart';
 import '../services/learning_progress_repository.dart';
-import '../services/mock_ai_tutor_service.dart';
 import '../services/rule_tutor_service.dart';
 import '../utils/answer_normalizer.dart';
 import '../widgets/problem_svg_viewer.dart';
@@ -300,35 +297,16 @@ class _ProblemSolveScreenState extends State<ProblemSolveScreen> {
   }
 
   AiTutorService _createTutorService([TutorMode? overrideMode]) {
-    final mode = overrideMode ?? _modeFromEnv;
-    tutorMode = mode;
-    if (mode == TutorMode.backend) {
-      return BackendTutorService(
-        baseUrl: AppEnvironment.backendBaseUrl,
-        sessionToken: AppEnvironment.backendSessionToken,
-      );
-    }
-    if (mode == TutorMode.mock) {
-      return const MockAiTutorService();
-    }
+    tutorMode = TutorMode.rule;
     return const RuleTutorService();
   }
 
-  TutorMode get _modeFromEnv {
-    final mode = AppEnvironment.aiTutorMode;
-    return switch (mode) {
-      'backend' => TutorMode.backend,
-      'mock' => TutorMode.mock,
-      _ => TutorMode.rule,
-    };
-  }
-
   String get _openAiModel {
-    return AppEnvironment.openAiModel;
+    return '';
   }
 
   bool get _openAiConfigured {
-    return AppEnvironment.openAiConfigured;
+    return false;
   }
 
   bool get _hasNextProblem {

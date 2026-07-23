@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
@@ -113,27 +115,18 @@ class _TutorChatPanelState extends State<TutorChatPanel> {
           children: [
             Row(
               children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: colorScheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    Icons.school_outlined,
-                    color: colorScheme.onPrimaryContainer,
-                  ),
-                ),
-                const SizedBox(width: 10),
+                _AnimatedTutorAvatar(isBusy: widget.isBusy),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Rule Tutor Preview',
-                          style: Theme.of(context).textTheme.titleMedium),
                       Text(
-                        _subtitle,
+                        'Rule Tutor',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      Text(
+                        'solvable JSON 기반 단계별 대화',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               color: colorScheme.onSurfaceVariant,
                             ),
@@ -151,50 +144,18 @@ class _TutorChatPanelState extends State<TutorChatPanel> {
                   ),
                 ),
                 IconButton(
-                  tooltip: '마지막 튜터 말 듣기',
+                  tooltip: '마지막 튜터 말 다시 듣기',
                   onPressed: _speakLatestTutorMessage,
                   icon: const Icon(Icons.record_voice_over_outlined),
                 ),
               ],
             ),
             const SizedBox(height: 12),
-            SegmentedButton<TutorMode>(
-              segments: [
-                const ButtonSegment(
-                  value: TutorMode.rule,
-                  icon: Icon(Icons.account_tree_outlined),
-                  label: Text('Rule'),
-                ),
-                const ButtonSegment(
-                  value: TutorMode.mock,
-                  icon: Icon(Icons.speed_outlined),
-                  label: Text('Mock'),
-                ),
-                const ButtonSegment(
-                  value: TutorMode.backend,
-                  icon: Icon(Icons.cloud_outlined),
-                  label: Text('Backend'),
-                ),
-                if (widget.allowOpenAiMode)
-                  ButtonSegment(
-                    value: TutorMode.openai,
-                    enabled: widget.openAiConfigured,
-                    icon: const Icon(Icons.auto_awesome_outlined),
-                    label: const Text('OpenAI'),
-                  ),
-              ],
-              selected: {widget.mode},
-              onSelectionChanged: widget.isBusy
-                  ? null
-                  : (selection) => widget.onModeChanged(selection.first),
+            _TutorActivityStrip(
+              isBusy: widget.isBusy,
+              latestText: _latestTutorText,
+              tutorActive: tutorActive,
             ),
-            if (widget.mode == TutorMode.openai &&
-                !widget.openAiConfigured) ...[
-              const SizedBox(height: 10),
-              const _Notice(
-                text: 'OPENAI_API_KEY가 .env에서 확인되지 않았습니다.',
-              ),
-            ],
             const SizedBox(height: 14),
             Wrap(
               spacing: 8,
@@ -203,7 +164,7 @@ class _TutorChatPanelState extends State<TutorChatPanel> {
                 FilledButton.tonalIcon(
                   onPressed: widget.isBusy ? null : widget.onRestart,
                   icon: const Icon(Icons.play_arrow_outlined),
-                  label: const Text('시작'),
+                  label: Text(tutorActive ? '다시 시작' : '시작'),
                 ),
                 OutlinedButton.icon(
                   onPressed: widget.isBusy || widget.messages.isEmpty
@@ -215,13 +176,6 @@ class _TutorChatPanelState extends State<TutorChatPanel> {
                 OutlinedButton.icon(
                   onPressed: widget.isBusy || widget.messages.isEmpty
                       ? null
-                      : widget.onRestart,
-                  icon: const Icon(Icons.replay_outlined),
-                  label: const Text('처음부터'),
-                ),
-                OutlinedButton.icon(
-                  onPressed: widget.isBusy || widget.messages.isEmpty
-                      ? null
                       : widget.onReset,
                   icon: const Icon(Icons.refresh),
                   label: const Text('초기화'),
@@ -229,13 +183,6 @@ class _TutorChatPanelState extends State<TutorChatPanel> {
               ],
             ),
             const SizedBox(height: 14),
-            Text(
-              widget.content.prompt,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    height: 1.45,
-                  ),
-            ),
-            const SizedBox(height: 16),
             if (choices.isEmpty)
               TextField(
                 controller: answerController,
@@ -249,8 +196,8 @@ class _TutorChatPanelState extends State<TutorChatPanel> {
               )
             else
               Wrap(
-                spacing: 12,
-                runSpacing: 12,
+                spacing: 10,
+                runSpacing: 10,
                 children: choices.map((choice) {
                   final selected = selectedChoice == choice;
                   return ChoiceChip(
@@ -265,12 +212,12 @@ class _TutorChatPanelState extends State<TutorChatPanel> {
                     label: Text(
                       choice,
                       style: TextStyle(
-                        fontSize: 17,
+                        fontSize: 16,
                         fontWeight:
                             selected ? FontWeight.w800 : FontWeight.w600,
                       ),
                     ),
-                    labelPadding: const EdgeInsets.only(right: 10),
+                    labelPadding: const EdgeInsets.only(right: 8),
                     padding: const EdgeInsets.symmetric(
                       horizontal: 10,
                       vertical: 10,
@@ -321,17 +268,7 @@ class _TutorChatPanelState extends State<TutorChatPanel> {
                 ),
               ),
             ],
-            if (!tutorActive) ...[
-              const SizedBox(height: 12),
-              Text(
-                '시작을 누르면 solvable JSON을 바탕으로 단계별 튜터가 열립니다.',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w700,
-                    ),
-              ),
-            ],
-            const Divider(),
+            const SizedBox(height: 14),
             ConstrainedBox(
               constraints: const BoxConstraints(maxHeight: 390),
               child: DecoratedBox(
@@ -341,10 +278,17 @@ class _TutorChatPanelState extends State<TutorChatPanel> {
                   border: Border.all(color: colorScheme.outlineVariant),
                 ),
                 child: widget.messages.isEmpty
-                    ? const Center(
+                    ? Center(
                         child: Padding(
-                          padding: EdgeInsets.all(20),
-                          child: Text('solvable JSON을 바탕으로 단계별 선택지를 자동 생성합니다.'),
+                          padding: const EdgeInsets.all(22),
+                          child: Text(
+                            '시작을 누르면 튜터가 풀이를 한 단계씩 안내해요.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: colorScheme.onSurfaceVariant,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
                         ),
                       )
                     : ListView.separated(
@@ -354,7 +298,8 @@ class _TutorChatPanelState extends State<TutorChatPanel> {
                         separatorBuilder: (_, __) => const SizedBox(height: 10),
                         itemBuilder: (context, index) {
                           return _MessageBubble(
-                              message: widget.messages[index]);
+                            message: widget.messages[index],
+                          );
                         },
                       ),
               ),
@@ -378,8 +323,10 @@ class _TutorChatPanelState extends State<TutorChatPanel> {
                     onPressed: widget.isBusy ? null : () => _send(choice),
                     icon: CircleAvatar(
                       radius: 11,
-                      child:
-                          Text('$index', style: const TextStyle(fontSize: 12)),
+                      child: Text(
+                        '$index',
+                        style: const TextStyle(fontSize: 12),
+                      ),
                     ),
                     label: Text(choice),
                   );
@@ -421,7 +368,7 @@ class _TutorChatPanelState extends State<TutorChatPanel> {
                     maxLines: 1,
                     textInputAction: TextInputAction.send,
                     decoration: const InputDecoration(
-                      labelText: '직접 입력하거나 선택지를 클릭하세요',
+                      labelText: '직접 입력하거나 선택지를 눌러 보세요',
                       border: OutlineInputBorder(),
                     ),
                     onSubmitted: _send,
@@ -450,13 +397,12 @@ class _TutorChatPanelState extends State<TutorChatPanel> {
     );
   }
 
-  String get _subtitle {
-    return switch (widget.mode) {
-      TutorMode.rule => 'solvable JSON 기반 선택형 진행',
-      TutorMode.mock => 'Mock 빠른 점검',
-      TutorMode.backend => 'Backend 서버 응답',
-      TutorMode.openai => '${widget.openAiModel} 실전 응답',
-    };
+  String get _latestTutorText {
+    final text = widget.messages.where((message) => message.isTutor).lastOrNull;
+    if (text == null) {
+      return '안녕! 시작하면 같이 풀어 볼게.';
+    }
+    return sanitizeTutorText(text.text).replaceAll(RegExp(r'\s+'), ' ');
   }
 
   void _submitSelectedAnswer() {
@@ -518,7 +464,7 @@ class _TutorChatPanelState extends State<TutorChatPanel> {
       await tts.stop();
       await tts.speak(text);
     } catch (_) {
-      _showVoiceMessage('브라우저 음성 합성이 차단되었어요. 화면을 한 번 클릭한 뒤 다시 눌러 주세요.');
+      _showVoiceMessage('브라우저 음성 합성이 차단되었어요. 화면을 한 번 누른 뒤 다시 시도해 주세요.');
     }
   }
 
@@ -591,22 +537,154 @@ class _TutorChatPanelState extends State<TutorChatPanel> {
   }
 }
 
-class _Notice extends StatelessWidget {
-  const _Notice({required this.text});
+class _AnimatedTutorAvatar extends StatefulWidget {
+  const _AnimatedTutorAvatar({required this.isBusy});
 
-  final String text;
+  final bool isBusy;
+
+  @override
+  State<_AnimatedTutorAvatar> createState() => _AnimatedTutorAvatarState();
+}
+
+class _AnimatedTutorAvatarState extends State<_AnimatedTutorAvatar>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1600),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, child) {
+        final wave = math.sin(controller.value * math.pi * 2);
+        final bounce = -3.0 + wave * 3.0;
+        final tilt = widget.isBusy ? wave * 0.12 : wave * 0.06;
+        return Transform.translate(
+          offset: Offset(0, bounce),
+          child: Transform.rotate(
+            angle: tilt,
+            child: child,
+          ),
+        );
+      },
+      child: SizedBox(
+        width: 54,
+        height: 54,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: colorScheme.primary.withValues(alpha: 0.22),
+                  ),
+                ),
+                child: Icon(
+                  Icons.smart_toy_outlined,
+                  color: colorScheme.onPrimaryContainer,
+                  size: 31,
+                ),
+              ),
+            ),
+            Positioned(
+              right: -2,
+              top: -3,
+              child: _PulseDot(active: widget.isBusy),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PulseDot extends StatelessWidget {
+  const _PulseDot({required this.active});
+
+  final bool active;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.all(12),
+      width: 14,
+      height: 14,
       decoration: BoxDecoration(
-        color: colorScheme.tertiaryContainer,
-        borderRadius: BorderRadius.circular(8),
+        color: active ? colorScheme.tertiary : const Color(0xFF22C55E),
+        shape: BoxShape.circle,
+        border: Border.all(color: colorScheme.surface, width: 2),
       ),
-      child:
-          Text(text, style: TextStyle(color: colorScheme.onTertiaryContainer)),
+    );
+  }
+}
+
+class _TutorActivityStrip extends StatelessWidget {
+  const _TutorActivityStrip({
+    required this.isBusy,
+    required this.latestText,
+    required this.tutorActive,
+  });
+
+  final bool isBusy;
+  final String latestText;
+  final bool tutorActive;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final text = isBusy
+        ? '생각하고 있어요'
+        : tutorActive
+            ? latestText
+            : '시작하면 풀이 대화가 여기에 나타나요.';
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colorScheme.secondaryContainer.withValues(alpha: 0.42),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: colorScheme.outlineVariant),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            Icon(
+              isBusy ? Icons.more_horiz : Icons.chat_bubble_outline,
+              color: colorScheme.onSecondaryContainer,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                text,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: colorScheme.onSecondaryContainer,
+                  fontWeight: FontWeight.w800,
+                  height: 1.35,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -634,7 +712,7 @@ class _ResultBanner extends StatelessWidget {
         ),
       ),
       child: Text(
-        isCorrect ? '맞아요! 이제 풀이 이유를 정리해 봐요.' : '다시 확인해 봐요. 튜터가 한 단계씩 도와줄게요.',
+        isCorrect ? '맞아요! 이제 이유를 정리해 볼까요.' : '다시 확인해 볼까요. 튜터가 다음 단계를 알려 줄게요.',
         style: TextStyle(
           color: textColor,
           fontSize: 16,
@@ -674,13 +752,24 @@ class _MessageBubble extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              isTutor ? 'Tutor' : 'Student',
-              style: TextStyle(
-                color: textColor.withValues(alpha: 0.72),
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-              ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  isTutor ? Icons.smart_toy_outlined : Icons.face_outlined,
+                  size: 15,
+                  color: textColor.withValues(alpha: 0.72),
+                ),
+                const SizedBox(width: 5),
+                Text(
+                  isTutor ? 'Tutor' : 'Student',
+                  style: TextStyle(
+                    color: textColor.withValues(alpha: 0.72),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 4),
             Text(
