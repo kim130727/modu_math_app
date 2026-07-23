@@ -87,13 +87,16 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
             final manifest = snapshot.data![2] as ProblemManifest;
             final recommendations =
                 snapshot.data![3] as List<RecommendedProblem>;
+            final nextProblem =
+                recommendations.isEmpty ? null : recommendations.first.problem;
 
             return RefreshIndicator(
               onRefresh: () async => _refresh(),
               child: LayoutBuilder(
                 builder: (context, constraints) {
-                  final wide = constraints.maxWidth >= 1080;
+                  final wide = constraints.maxWidth >= 980;
                   final horizontal = wide ? 28.0 : 16.0;
+
                   return ListView(
                     padding:
                         EdgeInsets.fromLTRB(horizontal, 16, horizontal, 32),
@@ -102,18 +105,18 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                         onReview: _openReview,
                         onProgress: _openProgress,
                       ),
-                      const SizedBox(height: 24),
-                      _TodayPanel(
+                      const SizedBox(height: 18),
+                      _TodayCard(
                         wide: wide,
                         profile: profile,
                         dailySummary: dailySummary,
-                        recommendations: recommendations,
+                        nextProblem: nextProblem,
                         onStart: recommendations.isEmpty
                             ? null
                             : () => _startDailyChallenge(recommendations),
                         onCurriculum: _openCurriculum,
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 22),
                       _UnitRail(
                         problems: manifest.problems,
                         onOpenUnit: (unit) =>
@@ -223,12 +226,12 @@ class _TopNavigation extends StatelessWidget {
   }
 }
 
-class _TodayPanel extends StatelessWidget {
-  const _TodayPanel({
+class _TodayCard extends StatelessWidget {
+  const _TodayCard({
     required this.wide,
     required this.profile,
     required this.dailySummary,
-    required this.recommendations,
+    required this.nextProblem,
     required this.onStart,
     required this.onCurriculum,
   });
@@ -236,28 +239,22 @@ class _TodayPanel extends StatelessWidget {
   final bool wide;
   final StudentProfile profile;
   final DailySummary dailySummary;
-  final List<RecommendedProblem> recommendations;
+  final ProblemSummary? nextProblem;
   final VoidCallback? onStart;
   final VoidCallback onCurriculum;
 
   @override
   Widget build(BuildContext context) {
-    final firstProblem =
-        recommendations.isEmpty ? null : recommendations.first.problem;
-    final content = _TodayCopy(
+    final copy = _TodayCopy(
       profile: profile,
       dailySummary: dailySummary,
       onStart: onStart,
       onCurriculum: onCurriculum,
     );
-    final preview = _LearningPreview(
-      problem: firstProblem,
-      dailySummary: dailySummary,
-      targetDailyCount: profile.targetDailyCount,
-    );
+    final problemCard = _NextProblemCard(problem: nextProblem);
 
     return Container(
-      padding: EdgeInsets.all(wide ? 32 : 20),
+      padding: EdgeInsets.all(wide ? 28 : 20),
       decoration: BoxDecoration(
         color: const Color(0xFFF7F8FC),
         borderRadius: BorderRadius.circular(16),
@@ -267,17 +264,17 @@ class _TodayPanel extends StatelessWidget {
           ? Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Expanded(flex: 5, child: content),
-                const SizedBox(width: 28),
-                Expanded(flex: 6, child: preview),
+                Expanded(flex: 5, child: copy),
+                const SizedBox(width: 24),
+                Expanded(flex: 4, child: problemCard),
               ],
             )
           : Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                content,
-                const SizedBox(height: 22),
-                preview,
+                copy,
+                const SizedBox(height: 16),
+                problemCard,
               ],
             ),
     );
@@ -319,13 +316,13 @@ class _TodayCopy extends StatelessWidget {
                 height: 1.5,
               ),
         ),
-        const SizedBox(height: 22),
+        const SizedBox(height: 18),
         _HeroStats(
           solved: dailySummary.totalAttempted,
           target: profile.targetDailyCount,
           accuracy: dailySummary.accuracy,
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 22),
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 420),
           child: Column(
@@ -335,7 +332,7 @@ class _TodayCopy extends StatelessWidget {
                 onPressed: onStart,
                 icon: const Icon(Icons.play_arrow_rounded),
                 style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(58),
+                  minimumSize: const Size.fromHeight(56),
                 ),
                 label: const Text(
                   '오늘 학습 시작',
@@ -348,7 +345,7 @@ class _TodayCopy extends StatelessWidget {
                 icon: const Icon(Icons.list_alt_rounded),
                 style: OutlinedButton.styleFrom(
                   backgroundColor: KidsPalette.paper,
-                  minimumSize: const Size.fromHeight(54),
+                  minimumSize: const Size.fromHeight(52),
                 ),
                 label: const Text(
                   '단원에서 고르기',
@@ -417,59 +414,8 @@ class _StatPill extends StatelessWidget {
   }
 }
 
-class _LearningPreview extends StatelessWidget {
-  const _LearningPreview({
-    required this.problem,
-    required this.dailySummary,
-    required this.targetDailyCount,
-  });
-
-  final ProblemSummary? problem;
-  final DailySummary dailySummary;
-  final int targetDailyCount;
-
-  @override
-  Widget build(BuildContext context) {
-    final ratio = targetDailyCount == 0
-        ? 0.0
-        : (dailySummary.totalAttempted / targetDailyCount).clamp(0.0, 1.0);
-
-    return AspectRatio(
-      aspectRatio: 1.55,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: KidsPalette.paper,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: KidsPalette.line),
-        ),
-        child: Stack(
-          children: [
-            Positioned.fill(child: CustomPaint(painter: _PreviewGridPainter())),
-            Positioned(
-              left: 20,
-              top: 20,
-              right: 20,
-              child: _ProblemPreviewCard(problem: problem),
-            ),
-            Positioned(
-              left: 20,
-              right: 20,
-              bottom: 20,
-              child: _ProgressStrip(
-                value: ratio,
-                title: problem?.unit ?? '오늘의 문제',
-                caption: problem?.title ?? '추천 문제를 준비하고 있어요.',
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ProblemPreviewCard extends StatelessWidget {
-  const _ProblemPreviewCard({required this.problem});
+class _NextProblemCard extends StatelessWidget {
+  const _NextProblemCard({required this.problem});
 
   final ProblemSummary? problem;
 
@@ -477,111 +423,55 @@ class _ProblemPreviewCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: const Color(0xFFECEEFF),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: KidsPalette.sage.withValues(alpha: 0.18)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            const SizedBox(
-              width: 54,
-              height: 54,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: KidsPalette.sage,
-                  borderRadius: BorderRadius.all(Radius.circular(12)),
-                ),
-                child: Icon(Icons.functions_rounded, color: Colors.white),
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    problem?.unit ?? '오늘의 문제',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.labelLarge,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    problem?.title ?? '추천 문제를 불러오는 중입니다.',
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ProgressStrip extends StatelessWidget {
-  const _ProgressStrip({
-    required this.value,
-    required this.title,
-    required this.caption,
-  });
-
-  final double value;
-  final String title;
-  final String caption;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: KidsPalette.paper.withValues(alpha: 0.92),
-        borderRadius: BorderRadius.circular(12),
+        color: KidsPalette.paper,
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: KidsPalette.line),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
             Row(
               children: [
-                Expanded(
-                  child: Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleMedium,
+                const SizedBox(
+                  width: 48,
+                  height: 48,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: KidsPalette.sage,
+                      borderRadius: BorderRadius.all(Radius.circular(12)),
+                    ),
+                    child: Icon(Icons.functions_rounded, color: Colors.white),
                   ),
                 ),
-                Text(
-                  '${(value * 100).round()}%',
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        color: KidsPalette.sage,
-                      ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    '다음 문제',
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          color: KidsPalette.sage,
+                        ),
+                  ),
                 ),
               ],
             ),
-            const SizedBox(height: 10),
-            LinearProgressIndicator(
-              value: value,
-              minHeight: 8,
-              borderRadius: BorderRadius.circular(8),
-              backgroundColor: KidsPalette.butter,
-              color: KidsPalette.sage,
-            ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 14),
             Text(
-              caption,
+              problem?.unit ?? '오늘의 문제',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 6),
+            Text(
+              problem?.title ?? '추천 문제를 준비하고 있어요.',
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodySmall,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: KidsPalette.cocoaSoft,
+                  ),
             ),
           ],
         ),
@@ -683,32 +573,6 @@ class _UnitTile extends StatelessWidget {
       ),
     );
   }
-}
-
-class _PreviewGridPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    canvas.drawColor(const Color(0xFFF7F8FC), BlendMode.src);
-
-    final gridPaint = Paint()
-      ..color = KidsPalette.line.withValues(alpha: 0.55)
-      ..strokeWidth = 1;
-    for (double x = 24; x < size.width; x += 48) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), gridPaint);
-    }
-    for (double y = 24; y < size.height; y += 48) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
-    }
-
-    final accentPaint = Paint()
-      ..color = KidsPalette.warning.withValues(alpha: 0.16)
-      ..style = PaintingStyle.fill;
-    canvas.drawCircle(
-        Offset(size.width * 0.82, size.height * 0.24), 54, accentPaint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _HomeStateMessage extends StatelessWidget {

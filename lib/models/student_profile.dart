@@ -18,7 +18,7 @@ class StudentProfile {
   factory StudentProfile.defaultProfile() {
     return StudentProfile(
       id: 'default_student_1',
-      name: '초등3 학생',
+      name: '학생',
       grade: 3,
       targetDailyCount: 10,
       streakDays: 1,

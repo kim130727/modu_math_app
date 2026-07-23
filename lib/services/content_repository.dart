@@ -112,79 +112,93 @@ class ContentRepository {
 
   Future<List<ProblemSummary>> _loadBundledProblems() async {
     final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
-    final assets = manifest.listAssets().toSet();
-    final semanticPaths = assets
+    final rendererPaths = manifest
+        .listAssets()
         .where(
           (path) =>
               path.startsWith('$grade3Path/') &&
-              path.endsWith('.semantic.json'),
+              path.endsWith('.renderer.json'),
         )
         .toList()
       ..sort();
 
-    final problems = <ProblemSummary>[];
-    for (final semanticPath in semanticPaths) {
-      final filePrefix = semanticPath
+    return rendererPaths.map((rendererPath) {
+      final filePrefix = rendererPath
           .split('/')
           .last
-          .replaceFirst(RegExp(r'\.semantic\.json$'), '');
-      final basePath = semanticPath.substring(
-        0,
-        semanticPath.length - '.semantic.json'.length,
-      );
-      if (!assets.contains('$basePath.renderer.json')) {
-        continue;
-      }
-
-      final semantic = await _loadOptionalJson(semanticPath);
-      if (semantic.isEmpty) {
-        continue;
-      }
-
-      problems.add(_summaryFromSemantic(
-        semantic: semantic,
-        path: semanticPath
-            .split('/')
-            .sublist(0, semanticPath.split('/').length - 1)
-            .join('/'),
-        filePrefix: filePrefix,
-      ));
-    }
-    return problems;
+          .replaceFirst(RegExp(r'\.renderer\.json$'), '');
+      final path = rendererPath
+          .split('/')
+          .sublist(0, rendererPath.split('/').length - 1)
+          .join('/');
+      return _summaryFromPrefix(path: path, filePrefix: filePrefix);
+    }).toList();
   }
 
-  ProblemSummary _summaryFromSemantic({
-    required Map<String, dynamic> semantic,
+  ProblemSummary _summaryFromPrefix({
     required String path,
     required String filePrefix,
   }) {
-    final metadata = _mapAt(semantic, 'metadata');
-    final grade = _readInt(metadata['grade']) ?? _gradeFromPrefix(filePrefix);
-    final semester =
-        _readInt(metadata['semester']) ?? _semesterFromPrefix(filePrefix);
+    final grade = _gradeFromPrefix(filePrefix);
+    final semester = _semesterFromPrefix(filePrefix);
     final unitNumber = _unitNumberFromPrefix(filePrefix);
-    final topic = metadata['topic']?.toString().trim();
-    final title = metadata['title']?.toString().trim();
-    final question = metadata['question']?.toString().trim();
-    final type = semantic['problem_type']?.toString() ?? 'unknown';
-    final unitTopic = topic == null || topic.isEmpty ? '수학' : topic;
-    final unit = '$semester학기 $unitNumber. $unitTopic';
-    final id = semantic['problem_id']?.toString() ?? filePrefix;
+    final unitTopic = _unitTopicFor(grade, semester, unitNumber);
     final raw = <String, dynamic>{
-      'id': id,
+      'id': filePrefix,
       'grade': grade,
-      'subject': metadata['subject']?.toString() ?? 'math',
-      'unit': unit,
-      'type': type,
-      'title': title == null || title.isEmpty ? question ?? id : title,
+      'subject': 'math',
+      'unit': '$semester학기 $unitNumber. $unitTopic',
+      'type': 'local_json_problem',
+      'title': _titleForUnit(unitTopic),
       'path': path,
       'filePrefix': filePrefix,
       'semester': '$semester학기',
       'unitNumber': unitNumber,
       'unitTopic': unitTopic,
     };
-
     return ProblemSummary.fromJson(raw);
+  }
+
+  String _unitTopicFor(int grade, int semester, int unitNumber) {
+    if (grade == 3 && semester == 1) {
+      return switch (unitNumber) {
+        1 => '덧셈과 뺄셈',
+        2 => '평면도형',
+        3 => '나눗셈',
+        4 => '곱셈',
+        5 => '길이와 시간',
+        6 => '분수와 소수',
+        _ => '수학',
+      };
+    }
+    if (grade == 3 && semester == 2) {
+      return switch (unitNumber) {
+        1 => '곱셈',
+        2 => '나눗셈',
+        3 => '원',
+        4 => '분수',
+        5 => '들이와 무게',
+        6 => '자료의 정리',
+        _ => '수학',
+      };
+    }
+    return '수학';
+  }
+
+  String _titleForUnit(String unitTopic) {
+    return switch (unitTopic) {
+      '덧셈과 뺄셈' => '덧셈과 뺄셈 문제',
+      '곱셈' => '곱셈 문제',
+      '나눗셈' => '나눗셈 문제',
+      '평면도형' => '도형 문제',
+      '원' => '원 문제',
+      '분수' => '분수 문제',
+      '분수와 소수' => '분수와 소수 문제',
+      '길이와 시간' => '길이와 시간 문제',
+      '들이와 무게' => '들이와 무게 문제',
+      '자료의 정리' => '자료 정리 문제',
+      _ => '수학 문제',
+    };
   }
 
   Future<Map<String, dynamic>> _loadJson(String assetPath) async {
@@ -207,21 +221,6 @@ class ContentRepository {
       return '';
     }
   }
-}
-
-Map<String, dynamic> _mapAt(Map<String, dynamic> map, String key) {
-  final value = map[key];
-  if (value is Map<String, dynamic>) {
-    return value;
-  }
-  return const {};
-}
-
-int? _readInt(Object? value) {
-  if (value is int) {
-    return value;
-  }
-  return int.tryParse(value?.toString() ?? '');
 }
 
 int _gradeFromPrefix(String filePrefix) {
